@@ -5,6 +5,7 @@
 
 import { useRef } from 'react'
 import NavbarBubble from './NavbarBubble'
+import SplashCursor from './SplashCursor'
 import Aurora from './Aurora'
 import ScrollStack, { ScrollStackItem } from './ScrollStack'
 import Footer from './Footer'
@@ -112,6 +113,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
   return (
     <div className="relative min-h-screen bg-white dark:bg-gray-950">
+      {/* WebGL fluid effect — uniquement sur la landing page */}
+      <SplashCursor DYE_RESOLUTION={320} SPLAT_FORCE={2500} CURL={1.2} DENSITY_DISSIPATION={4} />
       <NavbarBubble onStart={onStart} onNavClick={handleNavClick} />
 
       <section id="hero" ref={heroRef}
