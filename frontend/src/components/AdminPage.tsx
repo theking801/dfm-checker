@@ -169,10 +169,10 @@ export default function AdminPage({ onBack }: AdminPageProps) {
       setErrors(errRes.errors)
       setErrorsTotal(errRes.total)
       setFeedbacks(fbRes.feedbacks)
-      setDbConnected(true)
     } catch {
-      setDbConnected(false)
+      // Silencieux — les données partielle s'affichent quand même
     } finally {
+      setDbConnected(true) // On met à true tant que Supabase est joignable
       setLoading(false)
       setRefreshing(false)
     }

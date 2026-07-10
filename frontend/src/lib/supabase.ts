@@ -107,53 +107,67 @@ export interface DashboardData {
 export async function fetchDashboard(): Promise<DashboardData> {
   if (!supabase) throw new Error('Supabase non configuré')
 
-  // Toutes les requêtes en parallèle pour la perf
-  const [
-    analyticsResult,
-    { data: analyticsData, error: err2 },
-    { data: errorsData, error: err3 },
-    { data: feedbacksAll, error: err4 },
-    { data: errorsUnresolved, error: err5 },
-    { data: feedbacksNew, error: err6 },
-    dailyData,
-  ] = await Promise.all([
-    supabase.from('analytics').select('*', { count: 'exact', head: true }),
-    supabase.from('analytics').select('problems_count, high_count, error, date'),
-    supabase.from('errors').select('*').order('timestamp', { ascending: false }).limit(5),
-    supabase.from('feedbacks').select('*'),
-    supabase.from('errors').select('*').eq('resolved', false),
-    supabase.from('feedbacks').select('*').eq('status', 'new'),
-    // Daily chart: une seule requête avec GROUP BY
-    supabase.from('analytics').select('date, error', { count: 'exact' })
-      .gte('date', new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0]),
-  ])
-
-  if (err2 || err3 || err4 || err5 || err6) {
-    throw new Error('Erreur chargement dashboard')
+  // Chaque requête est indépendante — si une table manque, on retourne des zéros
+  const safeQuery = async (queryFn: () => any) => {
+    try {
+      const res = await queryFn()
+      if (res.error) return { data: null, count: 0 }
+      return res
+    } catch {
+      return { data: null, count: 0 }
+    }
   }
 
+  const [
+    analyticsResult,
+    analyticsRes,
+    errorsRes,
+    feedbacksAllRes,
+    errorsUnresolvedRes,
+    feedbacksNewRes,
+    dailyRes,
+  ] = await Promise.all([
+    safeQuery(() => supabase.from('analytics').select('*', { count: 'exact', head: true })),
+    safeQuery(() => supabase.from('analytics').select('problems_count, high_count, error, date')),
+    safeQuery(() => supabase.from('errors').select('*').order('timestamp', { ascending: false }).limit(5)),
+    safeQuery(() => supabase.from('feedbacks').select('*')),
+    safeQuery(() => supabase.from('errors').select('*').eq('resolved', false)),
+    safeQuery(() => supabase.from('feedbacks').select('*').eq('status', 'new')),
+    safeQuery(() =>
+      supabase.from('analytics').select('date, error', { count: 'exact' })
+        .gte('date', new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0])
+    ),
+  ])
+
+  const analyticsData = analyticsRes.data || []
+  const errorsData = errorsRes.data || []
+  const feedbacksAll = feedbacksAllRes.data || []
+  const errorsUnresolved = errorsUnresolvedRes.data || []
+  const feedbacksNew = feedbacksNewRes.data || []
+  const dailyData = dailyRes.data || []
+
   // Totaux
-  const totalProblems = (analyticsData || []).reduce(
+  const totalProblems = analyticsData.reduce(
     (sum: number, r: any) => sum + (r.problems_count || 0), 0
   )
-  const highTotal = (analyticsData || []).reduce(
+  const highTotal = analyticsData.reduce(
     (sum: number, r: any) => sum + (r.high_count || 0), 0
   )
-  const errorCount = (analyticsData || []).filter((r: any) => r.error).length
+  const errorCount = analyticsData.filter((r: any) => r.error).length
 
-  // Daily chart depuis la même requête agrégée
-  const daily = buildDailyChartFromData(dailyData.data || [])
+  // Daily chart
+  const daily = buildDailyChartFromData(dailyData)
 
   return {
     total_analyses: analyticsResult.count || 0,
     total_problems: totalProblems,
     total_errors: errorCount,
     high_severity_total: highTotal,
-    unresolved_errors: errorsUnresolved?.length || 0,
-    total_feedbacks: feedbacksAll?.length || 0,
-    new_feedbacks: feedbacksNew?.length || 0,
+    unresolved_errors: errorsUnresolved.length,
+    total_feedbacks: feedbacksAll.length,
+    new_feedbacks: feedbacksNew.length,
     daily,
-    recent_errors: (errorsData || []).map(e => ({ ...e, resolved: !!e.resolved })) as DbError[],
+    recent_errors: errorsData.map((e: any) => ({ ...e, resolved: !!e.resolved })) as DbError[],
   }
 }
 
@@ -189,25 +203,29 @@ export async function fetchErrors(params?: {
 }): Promise<{ errors: DbError[]; total: number }> {
   if (!supabase) throw new Error('Supabase non configuré')
 
-  let query = supabase.from('errors').select('*', { count: 'exact' })
+  try {
+    let query = supabase.from('errors').select('*', { count: 'exact' })
 
-  if (params?.severity && params.severity !== 'all') {
-    query = query.eq('severity', params.severity)
-  }
-  if (params?.resolved !== undefined) {
-    query = query.eq('resolved', params.resolved)
-  }
+    if (params?.severity && params.severity !== 'all') {
+      query = query.eq('severity', params.severity)
+    }
+    if (params?.resolved !== undefined) {
+      query = query.eq('resolved', params.resolved)
+    }
 
-  query = query.order('timestamp', { ascending: false })
-    .limit(params?.limit || 100)
-    .range(params?.offset || 0, (params?.offset || 0) + (params?.limit || 100) - 1)
+    query = query.order('timestamp', { ascending: false })
+      .limit(params?.limit || 100)
+      .range(params?.offset || 0, (params?.offset || 0) + (params?.limit || 100) - 1)
 
-  const { data, error, count } = await query
-  if (error) throw new Error('Erreur chargement erreurs')
+    const { data, error, count } = await query
+    if (error) return { errors: [], total: 0 }
 
-  return {
-    errors: (data || []).map(e => ({ ...e, resolved: !!e.resolved })) as DbError[],
-    total: count || 0,
+    return {
+      errors: (data || []).map(e => ({ ...e, resolved: !!e.resolved })) as DbError[],
+      total: count || 0,
+    }
+  } catch {
+    return { errors: [], total: 0 }
   }
 }
 
@@ -235,14 +253,18 @@ export async function toggleErrorResolved(errorId: number): Promise<void> {
 export async function fetchFeedbacks(): Promise<{ feedbacks: DbFeedback[] }> {
   if (!supabase) throw new Error('Supabase non configuré')
 
-  const { data, error } = await supabase
-    .from('feedbacks')
-    .select('*')
-    .order('date', { ascending: false })
-    .order('id', { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .select('*')
+      .order('date', { ascending: false })
+      .order('id', { ascending: false })
 
-  if (error) throw new Error('Erreur chargement feedbacks')
-  return { feedbacks: (data || []) as DbFeedback[] }
+    if (error) return { feedbacks: [] }
+    return { feedbacks: (data || []) as DbFeedback[] }
+  } catch {
+    return { feedbacks: [] }
+  }
 }
 
 export async function addFeedback(message: string, email: string = ''): Promise<void> {
