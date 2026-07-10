@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://dfm-checker.onrender.com/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
