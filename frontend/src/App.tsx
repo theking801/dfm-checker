@@ -24,12 +24,12 @@ function AppContent() {
   // ── Auto-login: check if already connected to Supabase ──
   useEffect(() => {
     if (!supabase) { setCheckingAuth(false); return }
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setScreen('admin')
-      }
-      setCheckingAuth(false)
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (session) setScreen('admin')
+      })
+      .catch(() => {})
+      .finally(() => setCheckingAuth(false))
   }, [])
 
   // ── Activity tracking: log page views ──
