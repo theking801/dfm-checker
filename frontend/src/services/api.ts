@@ -403,6 +403,31 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
   }
 }
 
+// ──────────────────────────────────────────────
+// Log analysis to Supabase (admin analytics)
+// ──────────────────────────────────────────────
+
+export async function logAnalysisToSupabase(result: AnalysisResult, file: File): Promise<void> {
+  try {
+    if (!hasSupabase()) return
+    const { supabase } = await import('../lib/supabase')
+    if (!supabase) return
+
+    await supabase.from('analytics').insert({
+      material: result.material,
+      problems_count: result.summary.total_problems,
+      high_count: result.summary.high_severity,
+      medium_count: result.summary.medium_severity,
+      low_count: result.summary.low_severity,
+      error: false,
+      file_size_kb: Math.round(file.size / 1024),
+      date: new Date().toISOString().split('T')[0],
+    })
+  } catch {
+    // Silencieux
+  }
+}
+
 export interface UserActivity {
   id: number
   timestamp: string

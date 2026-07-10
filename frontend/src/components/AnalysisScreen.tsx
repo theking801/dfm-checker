@@ -7,7 +7,7 @@ import FileUploader from './FileUploader'
 import MaterialSelector from './MaterialSelector'
 import ReportPanel from './ReportPanel'
 import Footer from './Footer'
-import { analyzeStl, checkBackendHealth, trackSessionEvent, trackSessionTime, logActivity } from '../services/api'
+import { analyzeStl, checkBackendHealth, trackSessionEvent, trackSessionTime, logActivity, logAnalysisToSupabase } from '../services/api'
 import { useTranslation } from '../contexts/LanguageContext'
 import { useTheme } from '../contexts/ThemeContext'
 import type { Material, AnalysisResult, AnalysisState } from '../types'
@@ -131,6 +131,8 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
       setAnalysis({ status: 'complete', result, error: null, progress: 100 })
       // Track completion
       trackSessionEvent({ uploaded: true, completed: true })
+      // Log to Supabase analytics
+      logAnalysisToSupabase(result, selectedFile)
     } catch (error) {
       setAnalysis({
         status: 'error',
