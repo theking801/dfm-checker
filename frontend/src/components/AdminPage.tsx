@@ -150,18 +150,16 @@ export default function AdminPage({ onBack }: AdminPageProps) {
     let cancelled = false
     async function load() {
       try {
-        const [dash, errRes, fbRes, behav] = await Promise.all([
+        const [dash, errRes, fbRes] = await Promise.all([
           fetchAdminDashboard(),
           fetchAdminErrors(),
           fetchAdminFeedbacks(),
-          fetchBehavioralStats().catch(() => null),
         ])
         if (cancelled) return
         setDashboard(dash)
         setErrors(errRes.errors)
         setErrorsTotal(errRes.total)
         setFeedbacks(fbRes.feedbacks)
-        setBehavioral(behav)
         setDbConnected(true)
       } catch {
         if (!cancelled) setDbConnected(false)
@@ -170,6 +168,15 @@ export default function AdminPage({ onBack }: AdminPageProps) {
       }
     }
     load()
+    return () => { cancelled = true }
+  }, [])
+
+  // ── Chargement analytics (séparé, non bloquant) ──
+  useEffect(() => {
+    let cancelled = false
+    fetchBehavioralStats()
+      .then(data => { if (!cancelled) setBehavioral(data) })
+      .catch(() => {})
     return () => { cancelled = true }
   }, [])
 

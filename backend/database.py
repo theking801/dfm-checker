@@ -287,6 +287,27 @@ def get_behavioral_stats():
     """Retourne les stats comportementales pour le dashboard admin."""
     conn = get_connection()
 
+    # Vérifier que la table sessions existe
+    table_exists = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'"
+    ).fetchone()
+
+    if not table_exists:
+        # La table n'existe pas encore — retourner des stats vides
+        return {
+            "total_sessions": 0,
+            "uploads": 0,
+            "completions": 0,
+            "drop_off_upload": 0,
+            "drop_off_analysis": 0,
+            "upload_rate": 0,
+            "completion_rate": 0,
+            "avg_time_sec": 0,
+            "material_usage": [],
+            "avg_file_size_kb": 0,
+            "size_distribution": [],
+        }
+
     # Sessions totales
     total_sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
 

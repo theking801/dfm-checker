@@ -271,14 +271,17 @@ export async function updateFeedbackStatus(feedbackId: number, status: string): 
 export async function fetchBehavioralStats(): Promise<any> {
   if (!supabase) throw new Error('Supabase non configuré')
 
-  // Sessions
-  const { data: sessionsData, error: sessErr } = await supabase
-    .from('sessions')
-    .select('*')
+  // Sessions — peut échouer si la table n'existe pas encore
+  let sessions: any[] = []
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+    if (!error && data) sessions = data
+  } catch {
+    // Table sessions n'existe pas encore — on continue avec des données vides
+  }
 
-  if (sessErr) throw new Error('Erreur chargement sessions')
-
-  const sessions = sessionsData || []
   const totalSessions = sessions.length
   const uploads = sessions.filter((s: any) => s.uploaded_file).length
   const completions = sessions.filter((s: any) => s.completed_analysis).length
