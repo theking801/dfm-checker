@@ -14,25 +14,23 @@ interface ReportPanelProps {
  * Inclut le résumé, la liste des problèmes, et le bouton d'export PDF.
  */
 export default function ReportPanel({ result }: ReportPanelProps) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const reportRef = useRef<HTMLDivElement>(null)
   const { problems, summary, stats, material } = result
 
-  const handleExportPdf = async () => {
-    if (reportRef.current) {
-      try {
-        await exportToPdf(reportRef.current, `dfm-report-${material}`)
-      } catch (error) {
-        console.error('Erreur PDF:', error)
-        alert("Impossible de générer le PDF. Vérifie la console pour plus de détails.")
-      }
+  const handleExportPdf = () => {
+    try {
+      exportToPdf(result, lang)
+    } catch (error) {
+      console.error('Erreur PDF:', error)
+      alert("Impossible de générer le PDF. Vérifie la console pour plus de détails.")
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Contenu du rapport */}
-      <div ref={reportRef} className="space-y-6">
+      <div className="space-y-6">
         {/* En-tête du rapport */}
         <div className="glass-panel p-6">
           <div className="flex items-center justify-between mb-4">
