@@ -3,7 +3,7 @@
  * Mode clair/sombre + FR/EN + React Bits animations
  */
 
-import { useRef, useState, useEffect } from 'react'
+import { useRef } from 'react'
 import NavbarBubble from './NavbarBubble'
 import Aurora from './Aurora'
 import ScrollStack, { ScrollStackItem } from './ScrollStack'
