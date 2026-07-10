@@ -2,14 +2,14 @@
  * AdminLogin — Modal de connexion pour le panel admin
  *
  * Ctrl+Shift+A → affiche ce modal → identifiants valides → admin
- * Authentification via Supabase Auth avec fallback credentials hardcodés.
+ * Authentification via Supabase Auth (production) ou fallback local (développement).
  */
 
 import { useState, useEffect, useRef } from 'react'
 import { signInAdmin } from '../services/api'
 
-// Fallback si Supabase n'est pas configuré
-const ADMIN_USERNAME = 'admin'
+// Credentials de fallback pour le développement local (quand Supabase n'est pas configuré)
+const ADMIN_EMAIL = 'admin@checker3d.com'
 const ADMIN_PASSWORD = 'dfmchecker2024'
 
 interface AdminLoginProps {
@@ -18,22 +18,20 @@ interface AdminLoginProps {
 }
 
 export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const usernameRef = useRef<HTMLInputElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
 
   // @ts-expect-error - import.meta.env est défini par Vite
-  const hasSupabaseSdk = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
-  // @ts-expect-error - import.meta.env est défini par Vite
-  const supabaseConfigured = !!import.meta.env.VITE_SUPABASE_URL
+  const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 
   // Focus automatique + fermeture Escape
   useEffect(() => {
-    usernameRef.current?.focus()
+    emailRef.current?.focus()
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel()
     }
@@ -45,7 +43,7 @@ export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
     e.preventDefault()
     setError('')
 
-    if (!username.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       setError('Veuillez remplir tous les champs')
       return
     }
@@ -53,26 +51,23 @@ export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
     setLoading(true)
 
     try {
-      if (hasSupabaseSdk) {
-        const result = await signInAdmin(username.trim(), password)
+      if (supabaseConfigured) {
+        // Production : authentification via Supabase Auth
+        const result = await signInAdmin(email.trim(), password)
         if (result.success) {
           onSuccess()
-          return
-        }
-        // Si Supabase renvoie une erreur autre que "invalid credentials", on l'affiche
-        if (result.error !== 'Invalid login credentials') {
+        } else {
           setError(result.error)
-          setLoading(false)
-          return
+          setPassword('')
         }
-      }
-
-      // Fallback local (développement)
-      if (username.trim() === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        onSuccess()
       } else {
-        setError('Identifiants incorrects')
-        setPassword('')
+        // Développement local : fallback credentials hardcodés
+        if (email.trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+          onSuccess()
+        } else {
+          setError('Identifiants incorrects')
+          setPassword('')
+        }
       }
     } catch {
       setError('Erreur de connexion')
@@ -130,15 +125,15 @@ export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                Email ou identifiant
+                Email
               </label>
               <input
-                ref={usernameRef}
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin@example.com"
-                autoComplete="username"
+                ref={emailRef}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@checker3d.com"
+                autoComplete="email"
                 spellCheck={false}
                 disabled={loading}
                 className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200
@@ -202,7 +197,7 @@ export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
               </button>
               <button
                 type="submit"
-                disabled={loading || !username.trim() || !password.trim()}
+                disabled={loading || !email.trim() || !password.trim()}
                 className="flex-1 py-3 text-sm font-medium text-white
                            bg-gradient-to-r from-tech-600 to-purple-500
                            hover:from-tech-500 hover:to-purple-400
