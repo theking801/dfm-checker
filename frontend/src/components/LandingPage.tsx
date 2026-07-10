@@ -12,6 +12,10 @@ import Footer from './Footer'
 import FadeContent from './FadeContent'
 import SplitText from './SplitText'
 import ShinyText from './ShinyText'
+import GradientText from './GradientText'
+import GlareHover from './GlareHover'
+import StarBorder from './StarBorder'
+import SpotlightCard from './SpotlightCard'
 import FeedbackButton from './FeedbackButton'
 import ClickSpark from './ClickSpark'
 import { useTranslation } from '../contexts/LanguageContext'
@@ -154,15 +158,15 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
                 <div className="flex items-center gap-6 pt-2"
                   style={{ animation: 'fadeInUp 0.6s ease-out 1.0s both' }}>
-                  <ClickSpark sparkColor="#a78bfa" sparkCount={10} sparkSize={8} sparkRadius={22} duration={400}>
+                  <StarBorder color="#7c3aed" speed="4s" thickness={2}>
                     <button onClick={onStart}
-                      className="group relative inline-flex items-center gap-3 px-7 py-3.5 bg-gradient-to-r from-tech-600 to-purple-500 text-white font-semibold text-base rounded-xl shadow-xl shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 before:absolute before:-inset-[3px] before:rounded-[15px] before:border-2 before:border-transparent before:bg-gradient-to-r before:from-tech-400 before:via-purple-400 before:to-pink-400 before:bg-clip-padding before:[-webkit-mask:linear-gradient(#fff_0_0)_padding-box,linear-gradient(#fff_0_0)] before:[-webkit-mask-composite:xor] before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
+                      className="group relative inline-flex items-center gap-3 px-7 py-3.5 bg-gradient-to-r from-tech-600 to-purple-500 text-white font-semibold text-base rounded-xl shadow-xl shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
                       <span>{t('hero.cta')}</span>
                       <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
                     </button>
-                  </ClickSpark>
+                  </StarBorder>
 
                   <div className="hidden sm:flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
                     <div className="flex -space-x-2">
@@ -179,7 +183,20 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               </div>
 
               <div className="w-full" style={{ animation: 'fadeInUp 0.8s ease-out 0.5s both' }}>
-                <VisualizerMockup />
+                <GlareHover
+                  width="100%"
+                  height="auto"
+                  background="transparent"
+                  borderRadius="16px"
+                  borderColor="transparent"
+                  glareColor="#7c3aed"
+                  glareOpacity={0.12}
+                  glareAngle={-45}
+                  glareSize={300}
+                  transitionDuration={800}
+                >
+                  <VisualizerMockup />
+                </GlareHover>
               </div>
             </div>
           </div>
@@ -239,7 +256,11 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
         <FadeContent threshold={0.2} duration={800}>
           <div className="max-w-4xl mx-auto px-4 text-center mb-16 relative z-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-tech-900 dark:text-white mb-3">{t('how.title')}</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-tech-900 dark:text-white mb-3">
+              <GradientText colors={['#7c3aed', '#a78bfa', '#c4b5fd', '#a78bfa', '#7c3aed']} animationSpeed={6}>
+                {t('how.title')}
+              </GradientText>
+            </h2>
             <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">{t('how.subtitle')}</p>
           </div>
         </FadeContent>
@@ -260,21 +281,17 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                   <div className="hidden md:block absolute top-16 left-[60%] w-[80%] h-px bg-gradient-to-r from-tech-300/40 to-transparent" />
                 )}
 
-                <div className="relative h-full p-8 bg-white dark:bg-gray-900/60 backdrop-blur-sm border border-gray-200 dark:border-gray-800/50 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-gray-950/30 hover:shadow-xl hover:border-tech-400/30 dark:hover:border-tech-500/30 transition-all duration-500 group-hover:-translate-y-1">
-                  {/* Step number */}
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center text-2xl shadow-lg mb-5 transition-transform duration-300 group-hover:scale-110`}>
-                    {step.icon}
+                <SpotlightCard spotlightColor={isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.08)'}>
+                  <div className="relative">
+                    {/* Step number */}
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center text-2xl shadow-lg mb-5 transition-transform duration-300 group-hover:scale-110`}>
+                      {step.icon}
+                    </div>
+
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{t(step.title)}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{t(step.desc)}</p>
                   </div>
-
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{t(step.title)}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{t(step.desc)}</p>
-
-                  {/* Hover glow */}
-                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${isDark ? 'rgba(124,58,237,0.06)' : 'rgba(124,58,237,0.04)'}, transparent 40%)`,
-                    }} />
-                </div>
+                </SpotlightCard>
               </div>
             ))}
           </div>
@@ -282,12 +299,12 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
         <div className="text-center mt-12 relative z-10"
           style={{ animation: 'fadeInUp 0.6s ease-out 0.9s both' }}>
-          <ClickSpark sparkColor="#c4b5fd" sparkCount={8} sparkSize={6} sparkRadius={18} duration={350}>
+          <StarBorder color="#7c3aed" speed="4s" thickness={2}>
             <button onClick={onStart}
-              className="group relative px-8 py-3 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98] before:absolute before:-inset-[3px] before:rounded-[15px] before:border-2 before:border-transparent before:bg-gradient-to-r before:from-tech-400 before:via-purple-400 before:to-pink-400 before:bg-clip-padding before:[-webkit-mask:linear-gradient(#fff_0_0)_padding-box,linear-gradient(#fff_0_0)] before:[-webkit-mask-composite:xor] before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
+              className="group relative px-8 py-3 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
               {t('features.cta')}
             </button>
-          </ClickSpark>
+          </StarBorder>
         </div>
       </section>
 

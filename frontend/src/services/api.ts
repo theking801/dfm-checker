@@ -21,6 +21,7 @@ import {
   addFeedback as supabaseAddFeedback,
   updateFeedbackStatus as supabaseUpdateFeedback,
   signInAdmin,
+  fetchBehavioralStats as supabaseFetchBehavioral,
 } from '../lib/supabase'
 
 /**
@@ -229,3 +230,87 @@ export async function updateFeedbackStatus(feedbackId: number, status: string): 
 }
 
 export { signInAdmin } from '../lib/supabase'
+
+// ──────────────────────────────────────────────
+// Session Tracking
+// ──────────────────────────────────────────────
+
+/**
+ * Génère un ID de session unique basé sur le timestamp + random.
+ */
+function generateSessionId(): string {
+  return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
+let _sessionId: string | null = null
+
+export function getSessionId(): string {
+  if (!_sessionId) {
+    _sessionId = localStorage.getItem('dfm_session_id')
+    if (!_sessionId) {
+      _sessionId = generateSessionId()
+      localStorage.setItem('dfm_session_id', _sessionId)
+    }
+  }
+  return _sessionId
+}
+
+export async function trackSessionEvent(event: {
+  uploaded?: boolean
+  completed?: boolean
+}): Promise<void> {
+  try {
+    const baseUrl = getApiBaseUrl()
+    await fetch(`${baseUrl}/session/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: getSessionId(),
+        ...event,
+      }),
+    })
+  } catch {
+    // Silencieux — ne pas casser l'UX pour du tracking
+  }
+}
+
+export async function trackSessionTime(timeSec: number): Promise<void> {
+  try {
+    const baseUrl = getApiBaseUrl()
+    await fetch(`${baseUrl}/session/time`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: getSessionId(),
+        time_sec: timeSec,
+      }),
+    })
+  } catch {
+    // Silencieux
+  }
+}
+
+// ──────────────────────────────────────────────
+// Behavioral Analytics (Admin)
+// ──────────────────────────────────────────────
+
+export interface BehavioralStats {
+  total_sessions: number
+  uploads: number
+  completions: number
+  drop_off_upload: number
+  drop_off_analysis: number
+  upload_rate: number
+  completion_rate: number
+  avg_time_sec: number
+  material_usage: { material: string; count: number }[]
+  avg_file_size_kb: number
+  size_distribution: { size_range: string; count: number }[]
+}
+
+export async function fetchBehavioralStats(): Promise<BehavioralStats> {
+  const baseUrl = getApiBaseUrl()
+  const response = await fetch(`${baseUrl}/admin/behavioral`)
+  if (!response.ok) throw new Error('Erreur chargement stats comportementales')
+  return response.json()
+}

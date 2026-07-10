@@ -7,7 +7,7 @@ import FileUploader from './FileUploader'
 import MaterialSelector from './MaterialSelector'
 import ReportPanel from './ReportPanel'
 import Footer from './Footer'
-import { analyzeStl, checkBackendHealth } from '../services/api'
+import { analyzeStl, checkBackendHealth, trackSessionEvent, trackSessionTime } from '../services/api'
 import { useTranslation } from '../contexts/LanguageContext'
 import { useTheme } from '../contexts/ThemeContext'
 import type { Material, AnalysisResult, AnalysisState } from '../types'
@@ -68,6 +68,22 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
   // Ref pour empêcher les double-clics sur "Analyser"
   const isAnalyzingRef = useRef(false)
 
+  // ── Session tracking : temps passé ──
+  useEffect(() => {
+    const startTime = Date.now()
+    return () => {
+      const elapsed = Math.round((Date.now() - startTime) / 1000)
+      if (elapsed > 5) {
+        trackSessionTime(elapsed)
+      }
+    }
+  }, [])
+
+  // ── Session tracking : page view ──
+  useEffect(() => {
+    trackSessionEvent({})
+  }, [])
+
   useEffect(() => {
     const t = setTimeout(() => setAnimateIn(true), 50)
     return () => clearTimeout(t)
@@ -88,6 +104,8 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
       if (stlObjectUrl) URL.revokeObjectURL(stlObjectUrl)
       setStlObjectUrl(URL.createObjectURL(file))
       setAnalysis({ status: 'idle', result: null, error: null, progress: 0 })
+      // Track upload
+      trackSessionEvent({ uploaded: true })
     },
     [stlObjectUrl]
   )
@@ -102,6 +120,8 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
         setAnalysis((prev) => ({ ...prev, progress }))
       })
       setAnalysis({ status: 'complete', result, error: null, progress: 100 })
+      // Track completion
+      trackSessionEvent({ uploaded: true, completed: true })
     } catch (error) {
       setAnalysis({
         status: 'error',

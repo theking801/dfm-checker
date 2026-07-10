@@ -74,9 +74,21 @@ def init_db():
             status      TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new','read','archived'))
         );
 
+        CREATE TABLE IF NOT EXISTS sessions (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id  TEXT NOT NULL UNIQUE,
+            started_at  TEXT NOT NULL DEFAULT (datetime('now')),
+            last_active TEXT NOT NULL DEFAULT (datetime('now')),
+            total_time_sec INTEGER DEFAULT 0,
+            pages_viewed INTEGER DEFAULT 1,
+            uploaded_file INTEGER DEFAULT 0,
+            completed_analysis INTEGER DEFAULT 0
+        );
+
         CREATE INDEX IF NOT EXISTS idx_analytics_date ON analytics(date);
         CREATE INDEX IF NOT EXISTS idx_errors_timestamp ON errors(timestamp);
         CREATE INDEX IF NOT EXISTS idx_feedbacks_status ON feedbacks(status);
+        CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id);
     """)
     conn.commit()
 
@@ -238,6 +250,103 @@ def update_feedback_status(feedback_id: int, status: str):
         (status, feedback_id),
     )
     conn.commit()
+
+
+# ── Sessions (analytics comportementaux) ──
+
+def upsert_session(session_id: str, uploaded: bool = False, completed: bool = False):
+    """Crée ou met à jour une session utilisateur."""
+    conn = get_connection()
+    conn.execute(
+        """INSERT INTO sessions (session_id, uploaded_file, completed_analysis)
+           VALUES (?, ?, ?)
+           ON CONFLICT(session_id) DO UPDATE SET
+             last_active = datetime('now'),
+             uploaded_file = MAX(sessions.uploaded_file, excluded.uploaded_file),
+             completed_analysis = MAX(sessions.completed_analysis, excluded.completed_analysis)""",
+        (session_id, int(uploaded), int(completed)),
+    )
+    conn.commit()
+
+
+def update_session_time(session_id: str, time_sec: int):
+    """Met à jour le temps passé dans une session."""
+    conn = get_connection()
+    conn.execute(
+        """INSERT INTO sessions (session_id, total_time_sec)
+           VALUES (?, ?)
+           ON CONFLICT(session_id) DO UPDATE SET
+             total_time_sec = sessions.total_time_sec + excluded.total_time_sec,
+             last_active = datetime('now')""",
+        (session_id, time_sec),
+    )
+    conn.commit()
+
+
+def get_behavioral_stats():
+    """Retourne les stats comportementales pour le dashboard admin."""
+    conn = get_connection()
+
+    # Sessions totales
+    total_sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+
+    # Upload rate
+    upload_stats = conn.execute(
+        "SELECT SUM(uploaded_file) as uploads, SUM(completed_analysis) as completions FROM sessions"
+    ).fetchone()
+    uploads = upload_stats["uploads"] or 0
+    completions = upload_stats["completions"] or 0
+    drop_off_upload = total_sessions - uploads if total_sessions > 0 else 0
+    drop_off_analysis = uploads - completions if uploads > 0 else 0
+
+    # Temps moyen passé
+    avg_time = conn.execute(
+        "SELECT AVG(total_time_sec) FROM sessions WHERE total_time_sec > 0"
+    ).fetchone()[0] or 0
+
+    # Matériaux les plus utilisés (depuis analytics existant)
+    material_usage = conn.execute(
+        """SELECT material, COUNT(*) as count
+           FROM analytics
+           GROUP BY material
+           ORDER BY count DESC"""
+    ).fetchall()
+
+    # Taille moyenne des fichiers
+    avg_file_size = conn.execute(
+        "SELECT AVG(file_size_kb) FROM analytics WHERE file_size_kb IS NOT NULL"
+    ).fetchone()[0] or 0
+
+    # Distribution des tailles de fichiers
+    size_distribution = conn.execute(
+        """SELECT
+           CASE
+             WHEN file_size_kb < 100 THEN '< 100 KB'
+             WHEN file_size_kb < 500 THEN '100-500 KB'
+             WHEN file_size_kb < 1000 THEN '500 KB - 1 MB'
+             WHEN file_size_kb < 5000 THEN '1-5 MB'
+             ELSE '5+ MB'
+           END as size_range,
+           COUNT(*) as count
+           FROM analytics
+           WHERE file_size_kb IS NOT NULL
+           GROUP BY size_range
+           ORDER BY MIN(file_size_kb)"""
+    ).fetchall()
+
+    return {
+        "total_sessions": total_sessions,
+        "uploads": uploads,
+        "completions": completions,
+        "drop_off_upload": drop_off_upload,
+        "drop_off_analysis": drop_off_analysis,
+        "upload_rate": round((uploads / total_sessions * 100), 1) if total_sessions > 0 else 0,
+        "completion_rate": round((completions / uploads * 100), 1) if uploads > 0 else 0,
+        "avg_time_sec": round(avg_time, 1),
+        "material_usage": [dict(m) for m in material_usage],
+        "avg_file_size_kb": round(avg_file_size, 1),
+        "size_distribution": [dict(s) for s in size_distribution],
+    }
 
 
 # ── Init au premier import ──

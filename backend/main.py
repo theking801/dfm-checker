@@ -132,6 +132,15 @@ class FeedbackCreate(BaseModel):
 class FeedbackStatusUpdate(BaseModel):
     status: str  # 'new', 'read', 'archived'
 
+class SessionUpdate(BaseModel):
+    session_id: str
+    uploaded: bool = False
+    completed: bool = False
+
+class SessionTimeUpdate(BaseModel):
+    session_id: str
+    time_sec: int
+
 
 # ──────────────────────────────────────────────
 # Middleware : requête → log + timing
@@ -507,4 +516,40 @@ async def admin_update_feedback_status(feedback_id: int, update: FeedbackStatusU
         return {"ok": True}
     except Exception as e:
         logger.exception("Erreur update feedback")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ──────────────────────────────────────────────
+# Session Tracking Endpoints
+# ──────────────────────────────────────────────
+
+@app.post("/session/update")
+async def session_update(update: SessionUpdate):
+    """Met à jour l'état d'une session (upload, complétion)."""
+    try:
+        db.upsert_session(update.session_id, update.uploaded, update.completed)
+        return {"ok": True}
+    except Exception as e:
+        logger.exception("Erreur session update")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/session/time")
+async def session_time(update: SessionTimeUpdate):
+    """Enregistre le temps passé dans une session."""
+    try:
+        db.update_session_time(update.session_id, update.time_sec)
+        return {"ok": True}
+    except Exception as e:
+        logger.exception("Erreur session time")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/admin/behavioral")
+async def admin_behavioral():
+    """Retourne les stats comportementales pour le dashboard admin."""
+    try:
+        return db.get_behavioral_stats()
+    except Exception as e:
+        logger.exception("Erreur stats comportementales")
         raise HTTPException(status_code=500, detail=str(e))

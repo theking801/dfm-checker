@@ -11,6 +11,8 @@ import {
   toggleErrorResolved,
   fetchAdminFeedbacks,
   updateFeedbackStatus,
+  fetchBehavioralStats,
+  type BehavioralStats,
 } from '../services/api'
 import type {
   AdminDashboard,
@@ -133,6 +135,7 @@ export default function AdminPage({ onBack }: AdminPageProps) {
   const [errors, setErrors] = useState<AdminError[]>([])
   const [errorsTotal, setErrorsTotal] = useState(0)
   const [feedbacks, setFeedbacks] = useState<AdminFeedback[]>([])
+  const [behavioral, setBehavioral] = useState<BehavioralStats | null>(null)
 
   // États
   const [loading, setLoading] = useState(true)
@@ -147,16 +150,18 @@ export default function AdminPage({ onBack }: AdminPageProps) {
     let cancelled = false
     async function load() {
       try {
-        const [dash, errRes, fbRes] = await Promise.all([
+        const [dash, errRes, fbRes, behav] = await Promise.all([
           fetchAdminDashboard(),
           fetchAdminErrors(),
           fetchAdminFeedbacks(),
+          fetchBehavioralStats().catch(() => null),
         ])
         if (cancelled) return
         setDashboard(dash)
         setErrors(errRes.errors)
         setErrorsTotal(errRes.total)
         setFeedbacks(fbRes.feedbacks)
+        setBehavioral(behav)
         setDbConnected(true)
       } catch {
         if (!cancelled) setDbConnected(false)
@@ -358,6 +363,139 @@ export default function AdminPage({ onBack }: AdminPageProps) {
                   </div>
                 </div>
               </div>
+
+              {/* ── Analytics Comportementaux ── */}
+              {behavioral && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatCard
+                      label="Sessions"
+                      value={String(behavioral.total_sessions)}
+                      icon="👤"
+                      color="from-blue-500/20 to-indigo-500/20 bg-gradient-to-br"
+                    />
+                    <StatCard
+                      label="Taux upload"
+                      value={`${behavioral.upload_rate}%`}
+                      icon="📤"
+                      color="from-green-500/20 to-emerald-500/20 bg-gradient-to-br"
+                      trend={`${behavioral.uploads}/${behavioral.total_sessions}`}
+                    />
+                    <StatCard
+                      label="Taux complétion"
+                      value={`${behavioral.completion_rate}%`}
+                      icon="✅"
+                      color="from-purple-500/20 to-violet-500/20 bg-gradient-to-br"
+                      trend={`${behavioral.completions}/${behavioral.uploads}`}
+                    />
+                    <StatCard
+                      label="Temps moyen"
+                      value={`${Math.round(behavioral.avg_time_sec)}s`}
+                      icon="⏱️"
+                      color="from-amber-500/20 to-orange-500/20 bg-gradient-to-br"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Drop-off funnel */}
+                    <div className="glass-panel p-6">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Funnel de conversion</h3>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Du premier visit à l'analyse complète</p>
+                      <div className="space-y-3">
+                        {[
+                          { label: 'Sessions totales', value: behavioral.total_sessions, color: 'bg-blue-500' },
+                          { label: 'Fichier uploadé', value: behavioral.uploads, color: 'bg-green-500' },
+                          { label: 'Analyse complétée', value: behavioral.completions, color: 'bg-purple-500' },
+                        ].map((step, i) => {
+                          const pct = behavioral.total_sessions > 0
+                            ? Math.round((step.value / behavioral.total_sessions) * 100)
+                            : 0
+                          return (
+                            <div key={step.label}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs text-gray-600 dark:text-gray-300">{step.label}</span>
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                  {step.value} ({pct}%)
+                                </span>
+                              </div>
+                              <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${step.color} transition-all duration-700`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Matériaux les plus utilisés */}
+                    <div className="glass-panel p-6">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Matériaux utilisés</h3>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Répartition par matériau</p>
+                      {behavioral.material_usage.length > 0 ? (
+                        <div className="space-y-3">
+                          {behavioral.material_usage.map((m) => {
+                            const maxCount = Math.max(...behavioral.material_usage.map(x => x.count))
+                            const pct = maxCount > 0 ? Math.round((m.count / maxCount) * 100) : 0
+                            const colors: Record<string, string> = {
+                              PLA: 'bg-green-500',
+                              ABS: 'bg-orange-500',
+                              PETG: 'bg-blue-500',
+                            }
+                            return (
+                              <div key={m.material} className="flex items-center gap-3">
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-12 shrink-0">{m.material}</span>
+                                <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${colors[m.material] || 'bg-gray-400'} transition-all duration-500`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-10 text-right">{m.count}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Aucune donnée</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Taille des fichiers */}
+                  {behavioral.size_distribution.length > 0 && (
+                    <div className="glass-panel p-6">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Taille des fichiers</h3>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+                        Taille moyenne : {behavioral.avg_file_size_kb < 1000
+                          ? `${behavioral.avg_file_size_kb} KB`
+                          : `${(behavioral.avg_file_size_kb / 1000).toFixed(1)} MB`
+                        }
+                      </p>
+                      <div className="flex items-end gap-3 h-28">
+                        {behavioral.size_distribution.map((s) => {
+                          const maxCount = Math.max(...behavioral.size_distribution.map(x => x.count))
+                          const pct = maxCount > 0 ? Math.round((s.count / maxCount) * 100) : 0
+                          return (
+                            <div key={s.size_range} className="flex-1 flex flex-col items-center gap-1 group">
+                              <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {s.count}
+                              </span>
+                              <div
+                                className="w-full rounded-t-md bg-gradient-to-t from-tech-600 to-purple-500 transition-all duration-300 group-hover:from-tech-500 group-hover:to-purple-400 cursor-pointer"
+                                style={{ height: `${pct}%`, minHeight: s.count > 0 ? '6px' : '0' }}
+                              />
+                              <span className="text-[9px] text-gray-400 dark:text-gray-600 whitespace-nowrap">{s.size_range}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Recent errors */}
               {dashboard.recent_errors.length > 0 && (

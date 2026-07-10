@@ -265,3 +265,70 @@ export async function updateFeedbackStatus(feedbackId: number, status: string): 
 
   if (error) throw new Error('Erreur mise à jour feedback')
 }
+
+// ── Behavioral Analytics ──
+
+export async function fetchBehavioralStats(): Promise<any> {
+  if (!supabase) throw new Error('Supabase non configuré')
+
+  // Sessions
+  const { data: sessionsData, error: sessErr } = await supabase
+    .from('sessions')
+    .select('*')
+
+  if (sessErr) throw new Error('Erreur chargement sessions')
+
+  const sessions = sessionsData || []
+  const totalSessions = sessions.length
+  const uploads = sessions.filter((s: any) => s.uploaded_file).length
+  const completions = sessions.filter((s: any) => s.completed_analysis).length
+  const totalTime = sessions.reduce((sum: number, s: any) => sum + (s.total_time_sec || 0), 0)
+  const avgTime = totalSessions > 0 ? totalTime / totalSessions : 0
+
+  // Material usage depuis analytics
+  const { data: analyticsData } = await supabase
+    .from('analytics')
+    .select('material, file_size_kb')
+
+  const materialMap: Record<string, number> = {}
+  const fileSizes: number[] = []
+  for (const row of (analyticsData || [])) {
+    materialMap[row.material] = (materialMap[row.material] || 0) + 1
+    if (row.file_size_kb) fileSizes.push(row.file_size_kb)
+  }
+
+  const materialUsage = Object.entries(materialMap)
+    .map(([material, count]) => ({ material, count }))
+    .sort((a, b) => b.count - a.count)
+
+  const avgFileSize = fileSizes.length > 0
+    ? fileSizes.reduce((a, b) => a + b, 0) / fileSizes.length
+    : 0
+
+  // Size distribution
+  const sizeRanges = { '< 100 KB': 0, '100-500 KB': 0, '500 KB - 1 MB': 0, '1-5 MB': 0, '5+ MB': 0 }
+  for (const size of fileSizes) {
+    if (size < 100) sizeRanges['< 100 KB']++
+    else if (size < 500) sizeRanges['100-500 KB']++
+    else if (size < 1000) sizeRanges['500 KB - 1 MB']++
+    else if (size < 5000) sizeRanges['1-5 MB']++
+    else sizeRanges['5+ MB']++
+  }
+  const sizeDistribution = Object.entries(sizeRanges)
+    .map(([size_range, count]) => ({ size_range, count }))
+    .filter(s => s.count > 0)
+
+  return {
+    total_sessions: totalSessions,
+    uploads,
+    completions,
+    drop_off_upload: totalSessions - uploads,
+    drop_off_analysis: uploads - completions,
+    upload_rate: totalSessions > 0 ? Math.round(uploads / totalSessions * 100 * 10) / 10 : 0,
+    completion_rate: uploads > 0 ? Math.round(completions / uploads * 100 * 10) / 10 : 0,
+    avg_time_sec: Math.round(avgTime * 10) / 10,
+    material_usage: materialUsage,
+    avg_file_size_kb: Math.round(avgFileSize * 10) / 10,
+    size_distribution: sizeDistribution,
+  }
+}
