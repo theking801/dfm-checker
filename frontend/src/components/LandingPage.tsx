@@ -86,19 +86,6 @@ export default function LandingPage({ onStart }: LandingPageProps) {
   const { t } = useTranslation()
   const { theme } = useTheme()
   const heroRef = useRef<HTMLDivElement>(null)
-  const ctaRef = useRef<HTMLDivElement>(null)
-  const [ctaVisible, setCtaVisible] = useState(false)
-
-  useEffect(() => {
-    const el = ctaRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setCtaVisible(true); observer.disconnect() } },
-      { threshold: 0.3 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
 
   const handleNavClick = (href: string) => {
     if (href === '#start') {
@@ -241,21 +228,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           </ScrollStack>
         </div>
 
-        <div ref={ctaRef}
-          className={`text-center transition-all duration-700 ${
-            ctaVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-90'
-          }`}
-          style={{ transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
-        >
-          <ClickSpark sparkColor="#c4b5fd" sparkCount={8} sparkSize={6} sparkRadius={18} duration={350}>
-            <Magnet padding={80} magnetStrength={4}>
-              <button onClick={onStart}
-                className="px-8 py-3 mt-6 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
-                {t('features.cta')}
-              </button>
-            </Magnet>
-          </ClickSpark>
-        </div>
+
       </section>
 
       {/* How It Works — section visuelle différenciée des Features */}
