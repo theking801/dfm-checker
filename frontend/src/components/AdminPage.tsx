@@ -164,21 +164,21 @@ export default function AdminPage({ onBack }: AdminPageProps) {
 
     try {
       const [dash, errRes, fbRes] = await Promise.all([
-        fetchAdminDashboard().catch(() => null),
-        fetchAdminErrors().catch(() => null),
-        fetchAdminFeedbacks().catch(() => null),
+        fetchAdminDashboard().catch((e: any) => { console.error('[Admin] Dashboard error:', e); return null }),
+        fetchAdminErrors().catch((e: any) => { console.error('[Admin] Errors error:', e); return null }),
+        fetchAdminFeedbacks().catch((e: any) => { console.error('[Admin] Feedbacks error:', e); return null }),
       ])
 
       if (dash) setDashboard(dash)
       if (errRes) { setErrors(errRes.errors); setErrorsTotal(errRes.total) }
       if (fbRes) setFeedbacks(fbRes.feedbacks)
 
-      // Check which tables actually have data
-      if (dash && dash.total_analyses === 0) missing.push('analytics')
-      if (errRes && errRes.total === 0) missing.push('errors')
-      if (fbRes && fbRes.feedbacks.length === 0) missing.push('feedbacks')
-    } catch {
-      // Silencieux
+      // Only show missing banner if queries FAILED (returned null), not if tables are empty
+      if (!dash) missing.push('analytics')
+      if (!errRes) missing.push('errors')
+      if (!fbRes) missing.push('feedbacks')
+    } catch (e) {
+      console.error('[Admin] loadData error:', e)
     } finally {
       setDbConnected(true)
       setMissingTables(missing)
@@ -412,7 +412,7 @@ export default function AdminPage({ onBack }: AdminPageProps) {
               <span className="text-lg">⚠️</span>
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                  Tables Supabase manquantes ou vides
+                  Tables Supabase manquantes : {missingTables.join(', ')}
                 </p>
                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                   Exécute ce SQL dans ton dashboard Supabase → SQL Editor :
