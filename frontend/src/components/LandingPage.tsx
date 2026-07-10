@@ -14,7 +14,6 @@ import SplitText from './SplitText'
 import ShinyText from './ShinyText'
 import GradientText from './GradientText'
 import GlareHover from './GlareHover'
-import StarBorder from './StarBorder'
 import SpotlightCard from './SpotlightCard'
 import FeedbackButton from './FeedbackButton'
 import ClickSpark from './ClickSpark'
@@ -158,15 +157,13 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
                 <div className="flex items-center gap-6 pt-2"
                   style={{ animation: 'fadeInUp 0.6s ease-out 1.0s both' }}>
-                  <StarBorder color="#7c3aed" speed="4s" thickness={2}>
-                    <button onClick={onStart}
-                      className="group relative inline-flex items-center gap-3 px-7 py-3.5 bg-gradient-to-r from-tech-600 to-purple-500 text-white font-semibold text-base rounded-xl shadow-xl shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
-                      <span>{t('hero.cta')}</span>
-                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </button>
-                  </StarBorder>
+                  <button onClick={onStart}
+                    className="group inline-flex items-center gap-3 px-7 py-3.5 bg-tech-600 hover:bg-tech-700 text-white font-semibold text-base rounded-xl shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                    <span>{t('hero.cta')}</span>
+                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </button>
 
                   <div className="hidden sm:flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
                     <div className="flex -space-x-2">
@@ -299,12 +296,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
         <div className="text-center mt-12 relative z-10"
           style={{ animation: 'fadeInUp 0.6s ease-out 0.9s both' }}>
-          <StarBorder color="#7c3aed" speed="4s" thickness={2}>
-            <button onClick={onStart}
-              className="group relative px-8 py-3 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
-              {t('features.cta')}
-            </button>
-          </StarBorder>
+          <button onClick={onStart}
+            className="px-8 py-3 bg-tech-600 hover:bg-tech-700 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
+            {t('features.cta')}
+          </button>
         </div>
       </section>
 

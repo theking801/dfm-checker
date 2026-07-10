@@ -109,26 +109,26 @@ export async function fetchDashboard(): Promise<DashboardData> {
 
   // Toutes les requêtes en parallèle pour la perf
   const [
-    { count: totalAnalyses, error: err1 },
+    analyticsResult,
     { data: analyticsData, error: err2 },
     { data: errorsData, error: err3 },
-    { data: feedbacksData, error: err4 },
-    { count: unresolvedCount, error: err5 },
-    { count: newFeedbacksCount, error: err6 },
+    { data: feedbacksAll, error: err4 },
+    { data: errorsUnresolved, error: err5 },
+    { data: feedbacksNew, error: err6 },
     dailyData,
   ] = await Promise.all([
     supabase.from('analytics').select('*', { count: 'exact', head: true }),
     supabase.from('analytics').select('problems_count, high_count, error, date'),
     supabase.from('errors').select('*').order('timestamp', { ascending: false }).limit(5),
-    supabase.from('feedbacks').select('*', { count: 'exact', head: true }),
-    supabase.from('errors').select('*', { count: 'exact', head: true }).eq('resolved', false),
-    supabase.from('feedbacks').select('*', { count: 'exact', head: true }).eq('status', 'new'),
+    supabase.from('feedbacks').select('*'),
+    supabase.from('errors').select('*').eq('resolved', false),
+    supabase.from('feedbacks').select('*').eq('status', 'new'),
     // Daily chart: une seule requête avec GROUP BY
     supabase.from('analytics').select('date, error', { count: 'exact' })
       .gte('date', new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0]),
   ])
 
-  if (err1 || err2 || err3 || err4 || err5 || err6) {
+  if (err2 || err3 || err4 || err5 || err6) {
     throw new Error('Erreur chargement dashboard')
   }
 
@@ -145,13 +145,13 @@ export async function fetchDashboard(): Promise<DashboardData> {
   const daily = buildDailyChartFromData(dailyData.data || [])
 
   return {
-    total_analyses: totalAnalyses || 0,
+    total_analyses: analyticsResult.count || 0,
     total_problems: totalProblems,
     total_errors: errorCount,
     high_severity_total: highTotal,
-    unresolved_errors: unresolvedCount || 0,
-    total_feedbacks: feedbacksData?.length || 0,
-    new_feedbacks: newFeedbacksCount || 0,
+    unresolved_errors: errorsUnresolved?.length || 0,
+    total_feedbacks: feedbacksAll?.length || 0,
+    new_feedbacks: feedbacksNew?.length || 0,
     daily,
     recent_errors: (errorsData || []).map(e => ({ ...e, resolved: !!e.resolved })) as DbError[],
   }
