@@ -6,9 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DFM Checker - Design for Manufacturing Checker</title>
     <meta name="description" content="Analyse la fabricabilité de tes fichiers STL pour l'impression 3D FDM" />
+
+    <!-- Font preconnect + preload -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+    </noscript>
+
+    <!-- Critical CSS inline -->
+    <style>
+      body { margin: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+      #root { min-height: 100vh; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
