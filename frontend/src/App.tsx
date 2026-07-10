@@ -21,13 +21,10 @@ function AppContent() {
   const [fadeOut, setFadeOut] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // ── Auto-login: check if already connected to Supabase ──
+  // ── Auto-login: just check session exists, don't redirect ──
   useEffect(() => {
     if (!supabase) { setCheckingAuth(false); return }
     supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (session) setScreen('admin')
-      })
       .catch(() => {})
       .finally(() => setCheckingAuth(false))
   }, [])
