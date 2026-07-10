@@ -114,7 +114,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
   return (
     <div className="relative min-h-screen bg-white dark:bg-gray-950">
       {/* WebGL fluid effect — uniquement sur la landing page */}
-      <SplashCursor DYE_RESOLUTION={320} SPLAT_FORCE={2500} CURL={1.2} DENSITY_DISSIPATION={4} />
+      <SplashCursor DYE_RESOLUTION={320} SPLAT_FORCE={2500} CURL={1.2} DENSITY_DISSIPATION={4}
+        COLOR_HUE_START={0.65} COLOR_HUE_END={0.85} />
       <NavbarBubble onStart={onStart} onNavClick={handleNavClick} />
 
       <section id="hero" ref={heroRef}

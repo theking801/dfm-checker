@@ -15,7 +15,9 @@ function SplashCursor({
   SHADING = true,
   COLOR_UPDATE_SPEED = 10,
   BACK_COLOR = { r: 0.5, g: 0, b: 0 },
-  TRANSPARENT = true
+  TRANSPARENT = true,
+  COLOR_HUE_START = 0.65,
+  COLOR_HUE_END = 0.85
 }) {
   const canvasRef = useRef(null);
 
@@ -451,7 +453,8 @@ function SplashCursor({
     function correctDeltaY(delta) { let aspectRatio = canvas.width / canvas.height; if (aspectRatio > 1) delta /= aspectRatio; return delta; }
 
     function generateColor() {
-      let c = HSVtoRGB(Math.random(), 1.0, 1.0);
+      let hue = COLOR_HUE_START + Math.random() * (COLOR_HUE_END - COLOR_HUE_START);
+      let c = HSVtoRGB(hue, 1.0, 1.0);
       c.r *= 0.15; c.g *= 0.15; c.b *= 0.15;
       return c;
     }
@@ -553,7 +556,7 @@ function SplashCursor({
     });
 
     updateFrame();
-  }, [SIM_RESOLUTION, DYE_RESOLUTION, CAPTURE_RESOLUTION, DENSITY_DISSIPATION, VELOCITY_DISSIPATION, PRESSURE, PRESSURE_ITERATIONS, CURL, SPLAT_RADIUS, SPLAT_FORCE, SHADING, COLOR_UPDATE_SPEED, BACK_COLOR, TRANSPARENT]);
+  }, [SIM_RESOLUTION, DYE_RESOLUTION, CAPTURE_RESOLUTION, DENSITY_DISSIPATION, VELOCITY_DISSIPATION, PRESSURE, PRESSURE_ITERATIONS, CURL, SPLAT_RADIUS, SPLAT_FORCE, SHADING, COLOR_UPDATE_SPEED, BACK_COLOR, TRANSPARENT, COLOR_HUE_START, COLOR_HUE_END]);
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 0, pointerEvents: 'none', width: '100%', height: '100%' }}>
