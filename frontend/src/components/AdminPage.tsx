@@ -148,6 +148,7 @@ export default function AdminPage({ onBack }: AdminPageProps) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [dbConnected, setDbConnected] = useState(false)
+  const [missingTables, setMissingTables] = useState<string[]>([])
 
   // Filtres erreurs
   const [filterSeverity, setFilterSeverity] = useState<string>('all')
@@ -159,20 +160,28 @@ export default function AdminPage({ onBack }: AdminPageProps) {
   // ── Chargement des données ──
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
+    const missing: string[] = []
+
     try {
       const [dash, errRes, fbRes] = await Promise.all([
-        fetchAdminDashboard(),
-        fetchAdminErrors(),
-        fetchAdminFeedbacks(),
+        fetchAdminDashboard().catch(() => null),
+        fetchAdminErrors().catch(() => null),
+        fetchAdminFeedbacks().catch(() => null),
       ])
-      setDashboard(dash)
-      setErrors(errRes.errors)
-      setErrorsTotal(errRes.total)
-      setFeedbacks(fbRes.feedbacks)
+
+      if (dash) setDashboard(dash)
+      if (errRes) { setErrors(errRes.errors); setErrorsTotal(errRes.total) }
+      if (fbRes) setFeedbacks(fbRes.feedbacks)
+
+      // Check which tables actually have data
+      if (dash && dash.total_analyses === 0) missing.push('analytics')
+      if (errRes && errRes.total === 0) missing.push('errors')
+      if (fbRes && fbRes.feedbacks.length === 0) missing.push('feedbacks')
     } catch {
-      // Silencieux — les données partielle s'affichent quand même
+      // Silencieux
     } finally {
-      setDbConnected(true) // On met à true tant que Supabase est joignable
+      setDbConnected(true)
+      setMissingTables(missing)
       setLoading(false)
       setRefreshing(false)
     }
@@ -394,9 +403,64 @@ export default function AdminPage({ onBack }: AdminPageProps) {
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
               Le serveur backend semble éteint. Les données affichées sont simulées à titre de démonstration.
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              (Les vraies données apparaîtront automatiquement quand le backend sera relancé)
-            </p>
+          </div>
+        )}
+
+        {!loading && dbConnected && missingTables.length > 0 && (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+            <div className="flex items-start gap-3">
+              <span className="text-lg">⚠️</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                  Tables Supabase manquantes ou vides
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Exécute ce SQL dans ton dashboard Supabase → SQL Editor :
+                </p>
+                <pre className="mt-2 p-3 bg-black/5 dark:bg-white/5 rounded-lg text-[11px] text-amber-800 dark:text-amber-200 overflow-x-auto font-mono">
+{`CREATE TABLE IF NOT EXISTS analytics (
+  id SERIAL PRIMARY KEY, date TEXT, material TEXT,
+  problems_count INT DEFAULT 0, high_count INT DEFAULT 0,
+  medium_count INT DEFAULT 0, low_count INT DEFAULT 0,
+  error INT DEFAULT 0, error_msg TEXT, file_size_kb REAL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS errors (
+  id SERIAL PRIMARY KEY, timestamp TIMESTAMPTZ DEFAULT now(),
+  type TEXT, message TEXT, details TEXT DEFAULT '',
+  severity TEXT DEFAULT 'medium', resolved INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS feedbacks (
+  id SERIAL PRIMARY KEY, date TEXT, message TEXT,
+  email TEXT DEFAULT '', status TEXT DEFAULT 'new'
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  id SERIAL PRIMARY KEY, session_id TEXT UNIQUE,
+  started_at TIMESTAMPTZ DEFAULT now(), last_active TIMESTAMPTZ DEFAULT now(),
+  total_time_sec INT DEFAULT 0, uploaded_file INT DEFAULT 0,
+  completed_analysis INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS user_activity (
+  id SERIAL PRIMARY KEY, timestamp TIMESTAMPTZ DEFAULT now(),
+  session_id TEXT, ip_address TEXT DEFAULT '', user_agent TEXT DEFAULT '',
+  event_type TEXT, page TEXT DEFAULT '', message TEXT DEFAULT '',
+  details TEXT DEFAULT '', metadata JSONB DEFAULT '{}'
+);
+ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE errors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_activity ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON analytics FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON errors FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON feedbacks FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON sessions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON user_activity FOR ALL USING (true) WITH CHECK (true);`}</pre>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  Puis clique sur le bouton refresh ↻ en haut.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
