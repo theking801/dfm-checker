@@ -1,16 +1,12 @@
 /**
  * AdminLogin — Modal de connexion pour le panel admin
  *
- * Ctrl+Shift+A → affiche ce modal → identifiants valides → admin
- * Authentification via Supabase Auth (production) ou fallback local (développement).
+ * Ctrl+Shift+A → affiche ce modal → connexion Supabase Auth → admin
+ * Authentification 100% Supabase Auth, zéro credential hardcodé.
  */
 
 import { useState, useEffect, useRef } from 'react'
 import { signInAdmin } from '../services/api'
-
-// Credentials de fallback pour le développement local (quand Supabase n'est pas configuré)
-const ADMIN_EMAIL = 'admin@checker3d.com'
-const ADMIN_PASSWORD = 'dfmchecker2024'
 
 interface AdminLoginProps {
   onSuccess: () => void
@@ -48,26 +44,20 @@ export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
       return
     }
 
+    if (!supabaseConfigured) {
+      setError('Supabase non configuré. Contactez l\'administrateur.')
+      return
+    }
+
     setLoading(true)
 
     try {
-      if (supabaseConfigured) {
-        // Production : authentification via Supabase Auth
-        const result = await signInAdmin(email.trim(), password)
-        if (result.success) {
-          onSuccess()
-        } else {
-          setError(result.error)
-          setPassword('')
-        }
+      const result = await signInAdmin(email.trim(), password)
+      if (result.success) {
+        onSuccess()
       } else {
-        // Développement local : fallback credentials hardcodés
-        if (email.trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-          onSuccess()
-        } else {
-          setError('Identifiants incorrects')
-          setPassword('')
-        }
+        setError(result.error)
+        setPassword('')
       }
     } catch {
       setError('Erreur de connexion')
@@ -132,7 +122,7 @@ export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@checker3d.com"
+                placeholder="admin@exemple.com"
                 autoComplete="email"
                 spellCheck={false}
                 disabled={loading}
@@ -221,7 +211,7 @@ export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
           </form>
 
           <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center mt-6">
-            {supabaseConfigured ? 'Authentification Supabase' : 'Panel réservé aux administrateurs'}
+            Authentification Supabase
           </p>
         </div>
       </div>
