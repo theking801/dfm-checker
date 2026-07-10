@@ -148,3 +148,4 @@ Projet étudiant — MIT
 
 - Seuils basés sur les guidelines publiques de Protolabs et Hubs
 - Icônes par [Heroicons](https://heroicons.com)
+"# dfm-checker" 
