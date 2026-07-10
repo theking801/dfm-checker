@@ -15,8 +15,18 @@ const en = {
   'hero.scroll': 'Scroll',
 
   // Features
-  'features.title': 'How it works',
-  'features.subtitle': 'Scroll through the cards to discover each feature of DFM Checker',
+  'features.title': 'Features',
+  'features.subtitle': 'Scroll through the cards to discover each feature',
+
+  // How it works
+  'how.title': 'How it works',
+  'how.subtitle': 'Three simple steps to check your 3D model',
+  'how.step1.title': '1. Upload your STL',
+  'how.step1.desc': 'Drag and drop your STL file. No account needed, no data stored — instant in-memory analysis.',
+  'how.step2.title': '2. Choose your material',
+  'how.step2.desc': 'Select PLA, ABS, or PETG. Each material has specific thresholds for walls, overhangs, and aspect ratios.',
+  'how.step3.title': '3. Get your report',
+  'how.step3.desc': 'Receive a detailed analysis with color-coded problem areas on your 3D model, severity ratings, and fix suggestions.',
   'features.cta': 'Try now →',
   'features.import': '📤 Easy import',
   'features.import.desc': 'Drag and drop your STL file. No account creation, no storage — in-memory analysis then deletion.',
@@ -34,7 +44,7 @@ const en = {
   'features.report.desc': 'Detailed exportable report with severity, explanations, and correction suggestions for each problem.',
 
   // Footer
-  'footer.text': 'DFM Checker V1 — Student project · Data based on public FDM manufacturing guidelines',
+  'footer.text': 'Checker 3D V1 — Student project · Data based on public FDM manufacturing guidelines',
 
   // Analysis Screen
   'analysis.title': 'Analyze your STL file',

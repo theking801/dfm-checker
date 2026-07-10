@@ -32,7 +32,7 @@ export default function ReportPanel({ result }: ReportPanelProps) {
   return (
     <div className="space-y-6">
       {/* Contenu du rapport */}
-      <div ref={reportRef} className="space-y-6" style={{ backgroundColor: '#f8f9fa', padding: '1px' }}>
+      <div ref={reportRef} className="space-y-6">
         {/* En-tête du rapport */}
         <div className="glass-panel p-6">
           <div className="flex items-center justify-between mb-4">

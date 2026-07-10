@@ -244,7 +244,7 @@ export default function AdminPage({ onBack }: AdminPageProps) {
               <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 hidden sm:block" />
               <div>
                 <h1 className="text-base font-bold text-gray-900 dark:text-white">Admin</h1>
-                <p className="text-[11px] text-gray-400 dark:text-gray-500">DFM Checker — Panel de contrôle</p>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">Checker 3D — Panel de contrôle</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

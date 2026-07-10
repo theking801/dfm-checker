@@ -6,8 +6,10 @@ import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react'
 import FileUploader from './FileUploader'
 import MaterialSelector from './MaterialSelector'
 import ReportPanel from './ReportPanel'
+import Footer from './Footer'
 import { analyzeStl, checkBackendHealth } from '../services/api'
 import { useTranslation } from '../contexts/LanguageContext'
+import { useTheme } from '../contexts/ThemeContext'
 import type { Material, AnalysisResult, AnalysisState } from '../types'
 
 // Lazy load Viewer3D (Three.js est lourd ~500KB)
@@ -48,7 +50,8 @@ function useBackendStatus() {
 }
 
 export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
-  const { t } = useTranslation()
+  const { t, lang, toggleLang } = useTranslation()
+  const { theme, toggleTheme } = useTheme()
   const [material, setMaterial] = useState<Material>('PLA')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [analysis, setAnalysis] = useState<AnalysisState>({
@@ -156,10 +159,36 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
           </button>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-gradient">DFM Checker</span>
+            <span className="text-sm font-bold text-gradient">Checker 3D</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Language toggle */}
+            <button
+              onClick={toggleLang}
+              className="text-xs font-semibold px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-tech-700 dark:hover:text-tech-300 hover:border-tech-500/50 transition-all duration-200"
+              title={lang === 'fr' ? 'Switch to English' : 'Passer en français'}
+            >
+              {lang === 'fr' ? 'FR' : 'EN'}
+            </button>
+
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-tech-700 dark:hover:text-tech-300 hover:border-tech-500/50 transition-all duration-200"
+              title={theme === 'light' ? 'Dark mode' : 'Light mode'}
+            >
+              {theme === 'light' ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+            </button>
+
             <BackendDot />
           </div>
         </div>
@@ -288,6 +317,8 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   )
 }

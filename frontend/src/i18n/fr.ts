@@ -15,8 +15,18 @@ const fr = {
   'hero.scroll': 'Scroll',
 
   // Features
-  'features.title': 'Comment ça marche',
-  'features.subtitle': 'Fais défiler les cartes pour découvrir chaque fonctionnalité du DFM Checker',
+  'features.title': 'Fonctionnalités',
+  'features.subtitle': 'Fais défiler les cartes pour découvrir chaque fonctionnalité',
+
+  // How it works
+  'how.title': 'Comment ça marche',
+  'how.subtitle': 'Trois étapes simples pour vérifier ton modèle 3D',
+  'how.step1.title': '1. Importe ton STL',
+  'how.step1.desc': 'Glisse-dépose ton fichier STL. Pas de compte, pas de stockage — analyse instantanée en mémoire.',
+  'how.step2.title': '2. Choisis ton matériau',
+  'how.step2.desc': 'Sélectionne PLA, ABS ou PETG. Chaque matériau a ses propres seuils pour les parois, surplombs et ratios.',
+  'how.step3.title': '3. Obtiens ton rapport',
+  'how.step3.desc': 'Reçois une analyse détaillée avec les zones problématiques colorées sur ton modèle 3D, la sévérité et les suggestions.',
   'features.cta': 'Essayer maintenant →',
   'features.import': '📤 Import facile',
   'features.import.desc': "Glisse-dépose ton fichier STL. Pas de création de compte, pas de stockage — analyse en mémoire puis suppression.",
@@ -34,7 +44,7 @@ const fr = {
   'features.report.desc': 'Rapport détaillé exportable avec sévérité, explications et suggestions de correction pour chaque problème.',
 
   // Footer
-  'footer.text': 'DFM Checker V1 — Projet étudiant · Données basées sur les guidelines publiques de fabrication FDM',
+  'footer.text': 'Checker 3D V1 — Projet étudiant · Données basées sur les guidelines publiques de fabrication FDM',
 
   // Analysis Screen
   'analysis.title': 'Analyse ton fichier STL',

@@ -35,7 +35,7 @@ function VisualizerMockup() {
           <div className="w-3 h-3 rounded-full bg-green-400" />
         </div>
         <div className="flex-1 text-center">
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">DFM Checker — Analyse STL</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">Checker 3D — Analyse STL</span>
         </div>
       </div>
 
@@ -247,6 +247,68 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <ClickSpark sparkColor="#c4b5fd" sparkCount={8} sparkSize={6} sparkRadius={18} duration={350}>
             <button onClick={onStart}
               className="px-8 py-3 mt-6 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
+              {t('features.cta')}
+            </button>
+          </ClickSpark>
+        </div>
+      </section>
+
+      {/* How It Works — section visuelle différenciée des Features */}
+      <section id="how-it-works" className="relative py-20 bg-gray-50/50 dark:bg-gray-900/30 overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, ${isDark ? '#a78bfa' : '#7c3aed'} 1px, transparent 0)`,
+            backgroundSize: '40px 40px',
+          }} />
+
+        <FadeContent threshold={0.2} duration={800}>
+          <div className="max-w-4xl mx-auto px-4 text-center mb-16 relative z-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-tech-900 dark:text-white mb-3">{t('how.title')}</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">{t('how.subtitle')}</p>
+          </div>
+        </FadeContent>
+
+        <div className="max-w-5xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {[
+              { icon: '📤', title: 'how.step1.title', desc: 'how.step1.desc', color: 'from-tech-500 to-purple-500' },
+              { icon: '🎯', title: 'how.step2.title', desc: 'how.step2.desc', color: 'from-purple-500 to-pink-500' },
+              { icon: '📊', title: 'how.step3.title', desc: 'how.step3.desc', color: 'from-pink-500 to-rose-500' },
+            ].map((step, i) => (
+              <div key={i}
+                className="group relative"
+                style={{ animation: `fadeInUp 0.6s ease-out ${i * 0.2}s both` }}
+              >
+                {/* Connector line */}
+                {i < 2 && (
+                  <div className="hidden md:block absolute top-16 left-[60%] w-[80%] h-px bg-gradient-to-r from-tech-300/40 to-transparent" />
+                )}
+
+                <div className="relative h-full p-8 bg-white dark:bg-gray-900/60 backdrop-blur-sm border border-gray-200 dark:border-gray-800/50 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-gray-950/30 hover:shadow-xl hover:border-tech-400/30 dark:hover:border-tech-500/30 transition-all duration-500 group-hover:-translate-y-1">
+                  {/* Step number */}
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center text-2xl shadow-lg mb-5 transition-transform duration-300 group-hover:scale-110`}>
+                    {step.icon}
+                  </div>
+
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{t(step.title)}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{t(step.desc)}</p>
+
+                  {/* Hover glow */}
+                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    style={{
+                      background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${isDark ? 'rgba(124,58,237,0.06)' : 'rgba(124,58,237,0.04)'}, transparent 40%)`,
+                    }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="text-center mt-12 relative z-10"
+          style={{ animation: 'fadeInUp 0.6s ease-out 0.9s both' }}>
+          <ClickSpark sparkColor="#c4b5fd" sparkCount={8} sparkSize={6} sparkRadius={18} duration={350}>
+            <button onClick={onStart}
+              className="px-8 py-3 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
               {t('features.cta')}
             </button>
           </ClickSpark>

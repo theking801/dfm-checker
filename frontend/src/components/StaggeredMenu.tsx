@@ -388,7 +388,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
               onClick={() => handleItemClick('#hero')}
               style={{ cursor: 'pointer' }}
             >
-              DFM Checker
+              Checker 3D
             </span>
           </div>
           <button
@@ -494,7 +494,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
             {/* Footer */}
             <div className="sm-socials mt-auto pt-8 flex flex-col gap-3">
               <p className="text-xs text-gray-600">
-                DFM Checker V1 — Projet étudiant
+                Checker 3D V1 — Projet étudiant
               </p>
             </div>
           </div>
