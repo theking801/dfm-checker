@@ -13,6 +13,7 @@ import SplitText from './SplitText'
 import ShinyText from './ShinyText'
 import FeedbackButton from './FeedbackButton'
 import ClickSpark from './ClickSpark'
+import Magnet from './Magnet'
 import { useTranslation } from '../contexts/LanguageContext'
 import { useTheme } from '../contexts/ThemeContext'
 
@@ -165,13 +166,15 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 <div className="flex items-center gap-6 pt-2"
                   style={{ animation: 'fadeInUp 0.6s ease-out 1.0s both' }}>
                   <ClickSpark sparkColor="#a78bfa" sparkCount={10} sparkSize={8} sparkRadius={22} duration={400}>
-                    <button onClick={onStart}
-                      className="group relative inline-flex items-center gap-3 px-7 py-3.5 bg-gradient-to-r from-tech-600 to-purple-500 text-white font-semibold text-base rounded-xl shadow-xl shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
-                      <span>{t('hero.cta')}</span>
-                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </button>
+                    <Magnet padding={80} magnetStrength={4}>
+                      <button onClick={onStart}
+                        className="group relative inline-flex items-center gap-3 px-7 py-3.5 bg-gradient-to-r from-tech-600 to-purple-500 text-white font-semibold text-base rounded-xl shadow-xl shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
+                        <span>{t('hero.cta')}</span>
+                        <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </button>
+                    </Magnet>
                   </ClickSpark>
 
                   <div className="hidden sm:flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
@@ -245,10 +248,12 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           style={{ transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
         >
           <ClickSpark sparkColor="#c4b5fd" sparkCount={8} sparkSize={6} sparkRadius={18} duration={350}>
-            <button onClick={onStart}
-              className="px-8 py-3 mt-6 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
-              {t('features.cta')}
-            </button>
+            <Magnet padding={80} magnetStrength={4}>
+              <button onClick={onStart}
+                className="px-8 py-3 mt-6 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
+                {t('features.cta')}
+              </button>
+            </Magnet>
           </ClickSpark>
         </div>
       </section>
@@ -307,10 +312,12 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         <div className="text-center mt-12 relative z-10"
           style={{ animation: 'fadeInUp 0.6s ease-out 0.9s both' }}>
           <ClickSpark sparkColor="#c4b5fd" sparkCount={8} sparkSize={6} sparkRadius={18} duration={350}>
-            <button onClick={onStart}
-              className="px-8 py-3 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
-              {t('features.cta')}
-            </button>
+            <Magnet padding={80} magnetStrength={4}>
+              <button onClick={onStart}
+                className="px-8 py-3 bg-gradient-to-r from-tech-600 to-purple-500 hover:from-tech-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-tech-600/20 hover:shadow-tech-500/30 hover:scale-[1.02] active:scale-[0.98]">
+                {t('features.cta')}
+              </button>
+            </Magnet>
           </ClickSpark>
         </div>
       </section>
