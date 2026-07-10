@@ -1,9 +1,9 @@
 {
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://dfm-checker.onrender.com/api/:path*"
-    },
+{
+  "source": "/api/(.*)",
+  "destination": "https://dfm-checker.onrender.com/$1"
+},
     {
       "source": "/(.*)",
       "destination": "/index.html"
