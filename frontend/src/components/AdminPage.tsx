@@ -12,7 +12,11 @@ import {
   fetchAdminFeedbacks,
   updateFeedbackStatus,
   fetchBehavioralStats,
+  fetchActivities,
+  fetchActivityStats,
   type BehavioralStats,
+  type UserActivity,
+  type ActivityStats,
 } from '../services/api'
 import type {
   AdminDashboard,
@@ -24,7 +28,7 @@ interface AdminPageProps {
   onBack: () => void
 }
 
-type Tab = 'dashboard' | 'errors' | 'feedbacks'
+type Tab = 'dashboard' | 'errors' | 'feedbacks' | 'activity'
 
 function StatCard({ label, value, icon, color, trend }: { label: string; value: string; icon: string; color: string; trend?: string }) {
   return (
@@ -136,6 +140,9 @@ export default function AdminPage({ onBack }: AdminPageProps) {
   const [errorsTotal, setErrorsTotal] = useState(0)
   const [feedbacks, setFeedbacks] = useState<AdminFeedback[]>([])
   const [behavioral, setBehavioral] = useState<BehavioralStats | null>(null)
+  const [activities, setActivities] = useState<UserActivity[]>([])
+  const [activitiesTotal, setActivitiesTotal] = useState(0)
+  const [activityStats, setActivityStats] = useState<ActivityStats | null>(null)
 
   // États
   const [loading, setLoading] = useState(true)
@@ -144,6 +151,9 @@ export default function AdminPage({ onBack }: AdminPageProps) {
   // Filtres erreurs
   const [filterSeverity, setFilterSeverity] = useState<string>('all')
   const [filterResolved, setFilterResolved] = useState<string>('all')
+
+  // Filtres activités
+  const [filterActivityType, setFilterActivityType] = useState<string>('all')
 
   // ── Chargement initial ──
   useEffect(() => {
@@ -179,6 +189,43 @@ export default function AdminPage({ onBack }: AdminPageProps) {
       .catch(() => {})
     return () => { cancelled = true }
   }, [])
+
+  // ── Chargement activités (séparé, non bloquant) ──
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const [actRes, statsRes] = await Promise.all([
+          fetchActivities(),
+          fetchActivityStats().catch(() => null),
+        ])
+        if (cancelled) return
+        setActivities(actRes.activities)
+        setActivitiesTotal(actRes.total)
+        setActivityStats(statsRes)
+      } catch {}
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  // ── Rafraîchir activités filtrées ──
+  useEffect(() => {
+    let cancelled = false
+    async function refetch() {
+      try {
+        const res = await fetchActivities(
+          filterActivityType === 'all' ? undefined : filterActivityType,
+        )
+        if (!cancelled) {
+          setActivities(res.activities)
+          setActivitiesTotal(res.total)
+        }
+      } catch {}
+    }
+    refetch()
+    return () => { cancelled = true }
+  }, [filterActivityType])
 
   // ── Rafraîchir erreurs filtrées ──
   useEffect(() => {
@@ -228,11 +275,16 @@ export default function AdminPage({ onBack }: AdminPageProps) {
   // ── Mémoïsation ──
   const unresolvedErrors = useMemo(() => errors.filter(e => !e.resolved).length, [errors])
   const newFeedbacks = useMemo(() => feedbacks.filter(f => f.status === 'new').length, [feedbacks])
+  const recentActivityErrors = useMemo(
+    () => activityStats?.recent_errors?.length || 0,
+    [activityStats]
+  )
 
   const tabs: { key: Tab; label: string; icon: string; badge?: number }[] = [
     { key: 'dashboard', label: 'Dashboard', icon: '📊' },
     { key: 'errors', label: 'Erreurs', icon: '⚠️', badge: unresolvedErrors },
     { key: 'feedbacks', label: 'Feedbacks', icon: '💬', badge: newFeedbacks },
+    { key: 'activity', label: 'Activité', icon: '🔍', badge: recentActivityErrors },
   ]
 
   const errorRate = dashboard && dashboard.total_analyses > 0
@@ -668,6 +720,129 @@ export default function AdminPage({ onBack }: AdminPageProps) {
                   <p className="text-sm text-gray-400 dark:text-gray-500">Aucun feedback pour le moment</p>
                 </div>
               )}
+            </div>
+          </FadeContent>
+        )}
+
+        {/* ── Tab: Activité ── */}
+        {!loading && dbConnected && activeTab === 'activity' && (
+          <FadeContent threshold={0.1} duration={600}>
+            <div className="space-y-6">
+              {/* Stats rapides */}
+              {activityStats && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <StatCard label="Événements total" value={String(activityStats.total_events)} icon="📋" color="from-blue-500/20 to-indigo-500/20 bg-gradient-to-br" />
+                  <StatCard label="Aujourd'hui" value={String(activityStats.today_events)} icon="📅" color="from-green-500/20 to-emerald-500/20 bg-gradient-to-br" />
+                  <StatCard label="IPs uniques" value={String(activityStats.unique_ips)} icon="🌐" color="from-purple-500/20 to-violet-500/20 bg-gradient-to-br" />
+                  <StatCard label="Erreurs récentes" value={String(activityStats.recent_errors.length)} icon="🔴" color="from-red-500/20 to-pink-500/20 bg-gradient-to-br" />
+                </div>
+              )}
+
+              {/* Répartition par type */}
+              {activityStats && activityStats.by_type.length > 0 && (
+                <div className="glass-panel p-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Répartition des événements</h3>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Par type d'activité</p>
+                  <div className="space-y-2">
+                    {activityStats.by_type.map((item) => {
+                      const maxCount = Math.max(...activityStats.by_type.map(x => x.count))
+                      const pct = maxCount > 0 ? Math.round((item.count / maxCount) * 100) : 0
+                      const typeLabels: Record<string, { label: string; color: string; icon: string }> = {
+                        page_view: { label: 'Pages vues', color: 'bg-blue-500', icon: '👁️' },
+                        error: { label: 'Erreurs JS', color: 'bg-red-500', icon: '❌' },
+                        backend_error: { label: 'Backend offline', color: 'bg-orange-500', icon: '🔌' },
+                        upload: { label: 'Uploads', color: 'bg-green-500', icon: '📤' },
+                        analysis: { label: 'Analyses', color: 'bg-purple-500', icon: '🔬' },
+                        feedback: { label: 'Feedbacks', color: 'bg-cyan-500', icon: '💬' },
+                        click: { label: 'Clics', color: 'bg-gray-500', icon: '👆' },
+                      }
+                      const config = typeLabels[item.event_type] || { label: item.event_type, color: 'bg-gray-400', icon: '❓' }
+                      return (
+                        <div key={item.event_type} className="flex items-center gap-3">
+                          <span className="text-xs w-5">{config.icon}</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-300 w-32 shrink-0">{config.label}</span>
+                          <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                            <div className={`h-full rounded-full ${config.color} transition-all duration-500`}
+                              style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-10 text-right">{item.count}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Filtres */}
+              <div className="glass-panel p-4 flex flex-wrap items-center gap-3">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Type :</span>
+                {['all', 'page_view', 'error', 'backend_error', 'upload', 'analysis', 'feedback'].map(t => (
+                  <button key={t}
+                    onClick={() => setFilterActivityType(t)}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition-colors ${
+                      filterActivityType === t
+                        ? 'bg-tech-500/15 text-tech-600 dark:text-tech-400 border-tech-500/30'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    {t === 'all' ? 'Tous' : t === 'page_view' ? 'Pages' : t === 'backend_error' ? 'Backend' : t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                ))}
+                <div className="flex-1" />
+                <span className="text-[11px] text-gray-400 dark:text-gray-500">{activitiesTotal} événement(s)</span>
+              </div>
+
+              {/* Liste des activités */}
+              <div className="glass-panel overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-gray-800/50">
+                        <th className="text-left px-4 py-3 text-[11px] font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-medium text-gray-400 uppercase tracking-wider">Type</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-medium text-gray-400 uppercase tracking-wider">Page</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-medium text-gray-400 uppercase tracking-wider">Message</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-medium text-gray-400 uppercase tracking-wider">IP</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-medium text-gray-400 uppercase tracking-wider">Session</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activities.map(act => {
+                        const typeColors: Record<string, string> = {
+                          page_view: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+                          error: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30',
+                          backend_error: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30',
+                          upload: 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30',
+                          analysis: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
+                          feedback: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30',
+                          click: 'bg-gray-500/15 text-gray-600 dark:text-gray-400 border-gray-500/30',
+                        }
+                        return (
+                          <tr key={act.id} className="border-b border-gray-50 dark:border-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
+                            <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono whitespace-nowrap">{act.timestamp}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full border ${typeColors[act.event_type] || ''}`}>
+                                {act.event_type}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300 font-medium">{act.page || '-'}</td>
+                            <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">{act.message || '-'}</td>
+                            <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono">{act.ip_address || '-'}</td>
+                            <td className="px-4 py-3 text-[10px] text-gray-400 dark:text-gray-500 font-mono max-w-[120px] truncate">{act.session_id || '-'}</td>
+                          </tr>
+                        )
+                      })}
+                      {activities.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400 dark:text-gray-500">
+                            Aucune activité enregistrée
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </FadeContent>
         )}

@@ -8,6 +8,7 @@ import ClickSpark from './components/ClickSpark'
 import AdminLogin from './components/AdminLogin'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LanguageProvider } from './contexts/LanguageContext'
+import { logActivity } from './services/api'
 
 // Lazy load — ces composants ne sont pas nécessaires au premier chargement
 const AnalysisScreen = lazy(() => import('./components/AnalysisScreen'))
@@ -17,6 +18,36 @@ function AppContent() {
   const [screen, setScreen] = useState<'landing' | 'analysis' | 'admin'>('landing')
   const [showLogin, setShowLogin] = useState(false)
   const [fadeOut, setFadeOut] = useState(false)
+
+  // ── Activity tracking: log page views ──
+  useEffect(() => {
+    logActivity({ event_type: 'page_view', page: screen })
+  }, [screen])
+
+  // ── Activity tracking: catch global errors ──
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      logActivity({
+        event_type: 'error',
+        page: screen,
+        message: event.message || 'Unknown error',
+        details: event.filename ? `${event.filename}:${event.lineno}:${event.colno}` : '',
+      })
+    }
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      logActivity({
+        event_type: 'error',
+        page: screen,
+        message: String(event.reason || 'Unhandled promise rejection'),
+      })
+    }
+    window.addEventListener('error', handleError)
+    window.addEventListener('unhandledrejection', handleRejection)
+    return () => {
+      window.removeEventListener('error', handleError)
+      window.removeEventListener('unhandledrejection', handleRejection)
+    }
+  }, [screen])
 
   // Keyboard shortcut: Ctrl+Shift+A → login modal → admin
   useEffect(() => {

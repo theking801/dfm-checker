@@ -314,3 +314,74 @@ export async function fetchBehavioralStats(): Promise<BehavioralStats> {
   if (!response.ok) throw new Error('Erreur chargement stats comportementales')
   return response.json()
 }
+
+// ──────────────────────────────────────────────
+// User Activity Logging
+// ──────────────────────────────────────────────
+
+export interface ActivityEvent {
+  event_type: 'page_view' | 'error' | 'upload' | 'analysis' | 'feedback' | 'backend_error' | 'click'
+  page?: string
+  message?: string
+  details?: string
+  metadata?: string
+}
+
+export async function logActivity(event: ActivityEvent): Promise<void> {
+  try {
+    const baseUrl = getApiBaseUrl()
+    await fetch(`${baseUrl}/activity/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: getSessionId(),
+        ...event,
+      }),
+    })
+  } catch {
+    // Silencieux
+  }
+}
+
+export interface UserActivity {
+  id: number
+  timestamp: string
+  session_id: string
+  ip_address: string
+  user_agent: string
+  event_type: string
+  page: string
+  message: string
+  details: string
+  metadata: string
+}
+
+export interface ActivityStats {
+  total_events: number
+  by_type: { event_type: string; count: number }[]
+  recent_errors: UserActivity[]
+  unique_ips: number
+  today_events: number
+}
+
+export async function fetchActivities(
+  eventType?: string,
+  limit = 100,
+  offset = 0
+): Promise<{ activities: UserActivity[]; total: number }> {
+  const baseUrl = getApiBaseUrl()
+  const params = new URLSearchParams()
+  if (eventType && eventType !== 'all') params.set('event_type', eventType)
+  params.set('limit', String(limit))
+  params.set('offset', String(offset))
+  const response = await fetch(`${baseUrl}/admin/activities?${params}`)
+  if (!response.ok) throw new Error('Erreur chargement activités')
+  return response.json()
+}
+
+export async function fetchActivityStats(): Promise<ActivityStats> {
+  const baseUrl = getApiBaseUrl()
+  const response = await fetch(`${baseUrl}/admin/activity-stats`)
+  if (!response.ok) throw new Error('Erreur chargement stats activités')
+  return response.json()
+}

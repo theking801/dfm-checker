@@ -85,6 +85,19 @@ def init_db():
             completed_analysis INTEGER DEFAULT 0
         );
 
+        CREATE TABLE IF NOT EXISTS user_activity (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp   TEXT NOT NULL DEFAULT (datetime('now')),
+            session_id  TEXT,
+            ip_address  TEXT NOT NULL DEFAULT '',
+            user_agent  TEXT NOT NULL DEFAULT '',
+            event_type  TEXT NOT NULL CHECK(event_type IN ('page_view','error','upload','analysis','feedback','backend_error','click')),
+            page        TEXT NOT NULL DEFAULT '',
+            message     TEXT NOT NULL DEFAULT '',
+            details     TEXT NOT NULL DEFAULT '',
+            metadata    TEXT NOT NULL DEFAULT '{}'
+        );
+
         CREATE INDEX IF NOT EXISTS idx_analytics_date ON analytics(date);
         CREATE INDEX IF NOT EXISTS idx_errors_timestamp ON errors(timestamp);
         CREATE INDEX IF NOT EXISTS idx_feedbacks_status ON feedbacks(status);
@@ -367,6 +380,94 @@ def get_behavioral_stats():
         "material_usage": [dict(m) for m in material_usage],
         "avg_file_size_kb": round(avg_file_size, 1),
         "size_distribution": [dict(s) for s in size_distribution],
+    }
+
+
+# ── User Activity Logs ──
+
+def log_user_activity(
+    session_id: str = "",
+    ip_address: str = "",
+    user_agent: str = "",
+    event_type: str = "page_view",
+    page: str = "",
+    message: str = "",
+    details: str = "",
+    metadata: str = "{}",
+):
+    """Enregistre un événement d'activité utilisateur."""
+    conn = get_connection()
+    conn.execute(
+        """INSERT INTO user_activity (session_id, ip_address, user_agent, event_type, page, message, details, metadata)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (session_id, ip_address, user_agent, event_type, page, message, details, metadata),
+    )
+    conn.commit()
+
+
+def get_user_activities(
+    event_type: str = None,
+    limit: int = 100,
+    offset: int = 0,
+):
+    """Récupère les activités utilisateur avec filtres."""
+    conn = get_connection()
+    query = "SELECT * FROM user_activity WHERE 1=1"
+    params = []
+
+    if event_type and event_type != "all":
+        query += " AND event_type = ?"
+        params.append(event_type)
+
+    # Compter le total d'abord
+    count_query = query.replace("SELECT *", "SELECT COUNT(*)")
+    total = conn.execute(count_query, params).fetchone()[0]
+
+    query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+
+    rows = conn.execute(query, params).fetchall()
+    return {"activities": [dict(r) for r in rows], "total": total}
+
+
+def get_activity_stats():
+    """Stats rapides des activités pour le dashboard."""
+    conn = get_connection()
+
+    # Total des événements
+    total = conn.execute("SELECT COUNT(*) FROM user_activity").fetchone()[0]
+
+    # Par type
+    by_type = conn.execute(
+        """SELECT event_type, COUNT(*) as count
+           FROM user_activity
+           GROUP BY event_type
+           ORDER BY count DESC"""
+    ).fetchall()
+
+    # Erreurs récentes
+    recent_errors = conn.execute(
+        """SELECT * FROM user_activity
+           WHERE event_type IN ('error', 'backend_error')
+           ORDER BY timestamp DESC LIMIT 10"""
+    ).fetchall()
+
+    # IPs uniques
+    unique_ips = conn.execute(
+        "SELECT COUNT(DISTINCT ip_address) FROM user_activity WHERE ip_address != ''"
+    ).fetchone()[0]
+
+    # Aujourd'hui
+    today = conn.execute(
+        "SELECT COUNT(*) FROM user_activity WHERE date(timestamp) = date('now')"
+    ).fetchone()[0]
+
+    return {
+        "total_events": total,
+        "by_type": [dict(r) for r in by_type],
+        "recent_errors": [dict(r) for r in recent_errors],
+        "unique_ips": unique_ips,
+        "today_events": today,
     }
 
 

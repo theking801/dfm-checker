@@ -553,3 +553,65 @@ async def admin_behavioral():
     except Exception as e:
         logger.exception("Erreur stats comportementales")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ──────────────────────────────────────────────
+# User Activity Logging
+# ──────────────────────────────────────────────
+
+class ActivityLog(BaseModel):
+    session_id: str = ""
+    event_type: str = "page_view"
+    page: str = ""
+    message: str = ""
+    details: str = ""
+    metadata: str = "{}"
+
+
+@app.post("/activity/log")
+async def activity_log(activity: ActivityLog, request: Request):
+    """Enregistre un événement d'activité utilisateur."""
+    try:
+        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        if not ip:
+            ip = request.client.host if request.client else ""
+        ua = request.headers.get("user-agent", "")
+
+        db.log_user_activity(
+            session_id=activity.session_id,
+            ip_address=ip,
+            user_agent=ua,
+            event_type=activity.event_type,
+            page=activity.page,
+            message=activity.message,
+            details=activity.details,
+            metadata=activity.metadata,
+        )
+        return {"ok": True}
+    except Exception as e:
+        logger.exception("Erreur log activité")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/admin/activities")
+async def admin_activities(
+    event_type: Optional[str] = Query(None),
+    limit: int = Query(100),
+    offset: int = Query(0),
+):
+    """Retourne les activités utilisateur."""
+    try:
+        return db.get_user_activities(event_type=event_type, limit=limit, offset=offset)
+    except Exception as e:
+        logger.exception("Erreur récupération activités")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/admin/activity-stats")
+async def admin_activity_stats():
+    """Stats rapides des activités."""
+    try:
+        return db.get_activity_stats()
+    except Exception as e:
+        logger.exception("Erreur stats activités")
+        raise HTTPException(status_code=500, detail=str(e))

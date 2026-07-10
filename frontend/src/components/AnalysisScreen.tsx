@@ -7,7 +7,7 @@ import FileUploader from './FileUploader'
 import MaterialSelector from './MaterialSelector'
 import ReportPanel from './ReportPanel'
 import Footer from './Footer'
-import { analyzeStl, checkBackendHealth, trackSessionEvent, trackSessionTime } from '../services/api'
+import { analyzeStl, checkBackendHealth, trackSessionEvent, trackSessionTime, logActivity } from '../services/api'
 import { useTranslation } from '../contexts/LanguageContext'
 import { useTheme } from '../contexts/ThemeContext'
 import type { Material, AnalysisResult, AnalysisState } from '../types'
@@ -36,7 +36,15 @@ function useBackendStatus() {
     let mounted = true
     const check = () =>
       checkBackendHealth().then((ok) => {
-        if (mounted) setStatus(ok ? 'online' : 'offline')
+        if (mounted) {
+          const newStatus = ok ? 'online' : 'offline'
+          setStatus(prev => {
+            if (prev !== newStatus && !ok) {
+              logActivity({ event_type: 'backend_error', page: 'analysis', message: 'Backend is offline' })
+            }
+            return newStatus
+          })
+        }
       })
     check()
     const timer = setInterval(check, 15_000)
@@ -82,6 +90,7 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
   // ── Session tracking : page view ──
   useEffect(() => {
     trackSessionEvent({})
+    logActivity({ event_type: 'page_view', page: 'analysis' })
   }, [])
 
   useEffect(() => {
@@ -128,6 +137,13 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
         result: null,
         error: error instanceof Error ? error.message : t('error.unknown'),
         progress: 0,
+      })
+      // Log error activity
+      logActivity({
+        event_type: 'error',
+        page: 'analysis',
+        message: error instanceof Error ? error.message : 'Unknown analysis error',
+        details: `file=${selectedFile?.name}, material=${material}`,
       })
     } finally {
       isAnalyzingRef.current = false
