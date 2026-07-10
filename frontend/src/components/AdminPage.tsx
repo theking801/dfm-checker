@@ -146,6 +146,7 @@ export default function AdminPage({ onBack }: AdminPageProps) {
 
   // États
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [dbConnected, setDbConnected] = useState(false)
 
   // Filtres erreurs
@@ -155,31 +156,43 @@ export default function AdminPage({ onBack }: AdminPageProps) {
   // Filtres activités
   const [filterActivityType, setFilterActivityType] = useState<string>('all')
 
+  // ── Chargement des données ──
+  const loadData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true)
+    try {
+      const [dash, errRes, fbRes] = await Promise.all([
+        fetchAdminDashboard(),
+        fetchAdminErrors(),
+        fetchAdminFeedbacks(),
+      ])
+      setDashboard(dash)
+      setErrors(errRes.errors)
+      setErrorsTotal(errRes.total)
+      setFeedbacks(fbRes.feedbacks)
+      setDbConnected(true)
+    } catch {
+      setDbConnected(false)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
   // ── Chargement initial ──
   useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const [dash, errRes, fbRes] = await Promise.all([
-          fetchAdminDashboard(),
-          fetchAdminErrors(),
-          fetchAdminFeedbacks(),
-        ])
-        if (cancelled) return
-        setDashboard(dash)
-        setErrors(errRes.errors)
-        setErrorsTotal(errRes.total)
-        setFeedbacks(fbRes.feedbacks)
-        setDbConnected(true)
-      } catch {
-        if (!cancelled) setDbConnected(false)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [])
+    loadData()
+  }, [loadData])
+
+  // ── Refresh manuel ──
+  const handleRefresh = useCallback(() => {
+    loadData(true)
+    // Recharger aussi les activités
+    fetchActivities().then(res => {
+      setActivities(res.activities)
+      setActivitiesTotal(res.total)
+    }).catch(() => {})
+    fetchActivityStats().then(s => setActivityStats(s)).catch(() => {})
+  }, [loadData])
 
   // ── Chargement analytics (séparé, non bloquant) ──
   useEffect(() => {
@@ -312,6 +325,16 @@ export default function AdminPage({ onBack }: AdminPageProps) {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-tech-600 dark:hover:text-tech-400 hover:border-tech-500/50 transition-all duration-200 disabled:opacity-50"
+                title="Rafraîchir les données"
+              >
+                <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
               {!dbConnected && !loading && (
                 <span className="text-[10px] font-medium text-red-500 bg-red-500/10 px-2 py-1 rounded-md">
                   Backend déconnecté
