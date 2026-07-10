@@ -260,31 +260,76 @@ export async function trackSessionEvent(event: {
   completed?: boolean
 }): Promise<void> {
   try {
-    const baseUrl = getApiBaseUrl()
-    await fetch(`${baseUrl}/session/update`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: getSessionId(),
-        ...event,
-      }),
-    })
+    if (hasSupabase()) {
+      // Écrire directement dans Supabase
+      const { supabase } = await import('../lib/supabase')
+      if (!supabase) return
+      const sid = getSessionId()
+      const { data: existing } = await supabase
+        .from('sessions')
+        .select('session_id')
+        .eq('session_id', sid)
+        .maybeSingle()
+
+      if (existing) {
+        await supabase
+          .from('sessions')
+          .update({
+            last_active: new Date().toISOString(),
+            uploaded_file: event.uploaded ? true : undefined,
+            completed_analysis: event.completed ? true : undefined,
+          })
+          .eq('session_id', sid)
+      } else {
+        await supabase
+          .from('sessions')
+          .insert({
+            session_id: sid,
+            uploaded_file: event.uploaded || false,
+            completed_analysis: event.completed || false,
+          })
+      }
+    } else {
+      // Fallback: backend API
+      const baseUrl = getApiBaseUrl()
+      await fetch(`${baseUrl}/session/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: getSessionId(),
+          ...event,
+        }),
+      })
+    }
   } catch {
-    // Silencieux — ne pas casser l'UX pour du tracking
+    // Silencieux
   }
 }
 
 export async function trackSessionTime(timeSec: number): Promise<void> {
   try {
-    const baseUrl = getApiBaseUrl()
-    await fetch(`${baseUrl}/session/time`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: getSessionId(),
-        time_sec: timeSec,
-      }),
-    })
+    if (hasSupabase()) {
+      const { supabase } = await import('../lib/supabase')
+      if (!supabase) return
+      const sid = getSessionId()
+      await supabase
+        .from('sessions')
+        .upsert({
+          session_id: sid,
+          total_time_sec: timeSec,
+          last_active: new Date().toISOString(),
+        }, { onConflict: 'session_id' })
+    } else {
+      const baseUrl = getApiBaseUrl()
+      await fetch(`${baseUrl}/session/time`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: getSessionId(),
+          time_sec: timeSec,
+        }),
+      })
+    }
   } catch {
     // Silencieux
   }
@@ -329,15 +374,30 @@ export interface ActivityEvent {
 
 export async function logActivity(event: ActivityEvent): Promise<void> {
   try {
-    const baseUrl = getApiBaseUrl()
-    await fetch(`${baseUrl}/activity/log`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: getSessionId(),
-        ...event,
-      }),
-    })
+    if (hasSupabase()) {
+      const { supabase } = await import('../lib/supabase')
+      if (!supabase) return
+      await supabase
+        .from('user_activity')
+        .insert({
+          session_id: getSessionId(),
+          event_type: event.event_type,
+          page: event.page || '',
+          message: event.message || '',
+          details: event.details || '',
+          metadata: event.metadata || '{}',
+        })
+    } else {
+      const baseUrl = getApiBaseUrl()
+      await fetch(`${baseUrl}/activity/log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: getSessionId(),
+          ...event,
+        }),
+      })
+    }
   } catch {
     // Silencieux
   }
@@ -369,6 +429,22 @@ export async function fetchActivities(
   limit = 100,
   offset = 0
 ): Promise<{ activities: UserActivity[]; total: number }> {
+  if (hasSupabase()) {
+    const { supabase } = await import('../lib/supabase')
+    if (!supabase) throw new Error('Supabase non configuré')
+
+    let query = supabase.from('user_activity').select('*', { count: 'exact' })
+    if (eventType && eventType !== 'all') {
+      query = query.eq('event_type', eventType)
+    }
+    query = query.order('timestamp', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    const { data, error, count } = await query
+    if (error) throw new Error('Erreur chargement activités')
+    return { activities: (data || []) as UserActivity[], total: count || 0 }
+  }
+
   const baseUrl = getApiBaseUrl()
   const params = new URLSearchParams()
   if (eventType && eventType !== 'all') params.set('event_type', eventType)
@@ -380,6 +456,56 @@ export async function fetchActivities(
 }
 
 export async function fetchActivityStats(): Promise<ActivityStats> {
+  if (hasSupabase()) {
+    const { supabase } = await import('../lib/supabase')
+    if (!supabase) throw new Error('Supabase non configuré')
+
+    const { data, error } = await supabase
+      .from('user_activity')
+      .select('event_type')
+
+    if (error) throw new Error('Erreur stats activités')
+
+    const rows = data || []
+    const total = rows.length
+
+    // Par type
+    const typeMap: Record<string, number> = {}
+    for (const r of rows) {
+      typeMap[r.event_type] = (typeMap[r.event_type] || 0) + 1
+    }
+    const by_type = Object.entries(typeMap)
+      .map(([event_type, count]) => ({ event_type, count }))
+      .sort((a, b) => b.count - a.count)
+
+    // Erreurs récentes
+    const { data: errors } = await supabase
+      .from('user_activity')
+      .select('*')
+      .in('event_type', ['error', 'backend_error'])
+      .order('timestamp', { ascending: false })
+      .limit(10)
+
+    // IPs uniques
+    const { data: allIps } = await supabase
+      .from('user_activity')
+      .select('ip_address')
+      .neq('ip_address', '')
+    const uniqueIps = new Set((allIps || []).map((r: any) => r.ip_address)).size
+
+    // Aujourd'hui
+    const today = new Date().toISOString().split('T')[0]
+    const todayEvents = rows.filter((r: any) => r.timestamp?.startsWith(today)).length
+
+    return {
+      total_events: total,
+      by_type,
+      recent_errors: (errors || []) as UserActivity[],
+      unique_ips: uniqueIps,
+      today_events: todayEvents,
+    }
+  }
+
   const baseUrl = getApiBaseUrl()
   const response = await fetch(`${baseUrl}/admin/activity-stats`)
   if (!response.ok) throw new Error('Erreur chargement stats activités')
