@@ -1,0 +1,23 @@
+# Render Blueprint — Backend DFM Checker (FastAPI + trimesh)
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: dfm-checker-api
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: LOG_LEVEL
+        value: INFO
+      - key: MAX_FILE_SIZE_MB
+        value: 50
+      - key: CORS_ORIGINS
+        value: https://dfm-checker.vercel.app
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

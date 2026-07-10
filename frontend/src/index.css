@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-gray-200 dark:border-gray-800;
+  }
+
+  body {
+    @apply bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-600;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-gray-950/50;
+  }
+
+  .glass-card {
+    @apply bg-white dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/30 rounded-xl shadow-sm dark:shadow-none;
+  }
+
+  .tech-gradient {
+    @apply bg-gradient-to-r from-tech-600 to-purple-500;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-tech-600 to-purple-500;
+  }
+
+  .glow-border {
+    @apply border border-tech-400/30 shadow-[0_0_15px_rgba(124,58,237,0.12)] dark:shadow-[0_0_15px_rgba(124,58,237,0.2)];
+  }
+}
+
+/* Keyframes globales */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+/* Animation de transition du thème */
+@keyframes theme-spin {
+  0% { transform: rotate(0deg) scale(0.8); opacity: 0; }
+  50% { transform: rotate(180deg) scale(1.1); opacity: 1; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+.theme-toggle-icon {
+  animation: theme-spin 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
