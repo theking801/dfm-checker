@@ -102,6 +102,8 @@ const en = {
   'report.stats.vertices': 'Vertices',
   'report.stats.volume': 'Volume',
   'report.stats.watertight': 'Watertight',
+  'report.watertight.yes': 'Yes',
+  'report.watertight.no': 'No',
   'report.no_issues': 'No issues detected!',
   'report.no_issues.desc': "Your model seems ready for printing with",
   'report.problems_list': 'Detected problems',

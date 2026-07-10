@@ -77,27 +77,27 @@ export default function ReportPanel({ result }: ReportPanelProps) {
         {/* Statistiques */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="glass-card p-3">
-            <p className="text-xs text-gray-500">Faces</p>
+            <p className="text-xs text-gray-500">{t('report.stats.faces')}</p>
             <p className="text-lg font-mono font-semibold text-gray-800 dark:text-gray-200">
               {stats.num_faces.toLocaleString()}
             </p>
           </div>
           <div className="glass-card p-3">
-            <p className="text-xs text-gray-500">Sommets</p>
+            <p className="text-xs text-gray-500">{t('report.stats.vertices')}</p>
             <p className="text-lg font-mono font-semibold text-gray-800 dark:text-gray-200">
               {stats.num_vertices.toLocaleString()}
             </p>
           </div>
           <div className="glass-card p-3">
-            <p className="text-xs text-gray-500">Volume</p>
+            <p className="text-xs text-gray-500">{t('report.stats.volume')}</p>
             <p className="text-lg font-mono font-semibold text-gray-800 dark:text-gray-200">
               {stats.volume_mm3 ? `${(stats.volume_mm3 / 1000).toFixed(1)} cm³` : 'N/A'}
             </p>
           </div>
           <div className="glass-card p-3">
-            <p className="text-xs text-gray-500">Watertight</p>
+            <p className="text-xs text-gray-500">{t('report.stats.watertight')}</p>
             <p className="text-lg font-mono font-semibold text-gray-800 dark:text-gray-200">
-              {stats.is_watertight ? '✅ Oui' : '⚠️ Non'}
+              {stats.is_watertight ? `✅ ${t('report.watertight.yes')}` : `⚠️ ${t('report.watertight.no')}`}
             </p>
           </div>
         </div>

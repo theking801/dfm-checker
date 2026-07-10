@@ -97,38 +97,38 @@ export default function Viewer3D({ stlUrl, problems, stats }: Viewer3DProps) {
     <div className="w-full h-full relative rounded-2xl overflow-hidden bg-gray-50/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800/50">
       {/* Légende des couleurs */}
       <div className="absolute top-4 left-4 z-10 space-y-1.5">
-        <div className="glass-card p-3 space-y-1.5">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('viewer.legend')}</span>
+        <div className="p-3 space-y-1.5 bg-white/90 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('viewer.legend')}</span>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-3 h-3 rounded-sm bg-blue-400/80" />
-            <span className="text-gray-500 dark:text-gray-400">{t('viewer.normal')}</span>
+            <span className="text-gray-600 dark:text-gray-200">{t('viewer.normal')}</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-3 h-3 rounded-sm bg-red-400" />
-            <span className="text-gray-500 dark:text-gray-400">{t('viewer.overhang')}</span>
+            <span className="text-gray-600 dark:text-gray-200">{t('viewer.overhang')}</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-3 h-3 rounded-sm bg-orange-400" />
-            <span className="text-gray-500 dark:text-gray-400">{t('viewer.wall')}</span>
+            <span className="text-gray-600 dark:text-gray-200">{t('viewer.wall')}</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-3 h-3 rounded-sm bg-pink-400" />
-            <span className="text-gray-500 dark:text-gray-400">{t('viewer.ratio_label')}</span>
+            <span className="text-gray-600 dark:text-gray-200">{t('viewer.ratio_label')}</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-3 h-3 rounded-sm bg-teal-400" />
-            <span className="text-gray-500 dark:text-gray-400">{t('viewer.sharp_corner')}</span>
+            <span className="text-gray-600 dark:text-gray-200">{t('viewer.sharp_corner')}</span>
           </div>
         </div>
       </div>
 
       {/* Contrôles de la souris */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-        <div className="glass-card px-4 py-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3">
+        <div className="px-4 py-2 text-xs text-gray-500 dark:text-gray-300 bg-white/90 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg flex items-center gap-3">
           <span>{t('viewer.rotate')}</span>
-          <span className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+          <span className="w-px h-3 bg-gray-200 dark:bg-gray-600" />
           <span>{t('viewer.zoom')}</span>
-          <span className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+          <span className="w-px h-3 bg-gray-200 dark:bg-gray-600" />
           <span>{t('viewer.pan')}</span>
         </div>
       </div>

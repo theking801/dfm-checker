@@ -102,6 +102,8 @@ const fr = {
   'report.stats.vertices': 'Sommets',
   'report.stats.volume': 'Volume',
   'report.stats.watertight': 'Watertight',
+  'report.watertight.yes': 'Oui',
+  'report.watertight.no': 'Non',
   'report.no_issues': 'Aucun problème détecté !',
   'report.no_issues.desc': "Ton modèle semble prêt pour l'impression avec les paramètres",
   'report.problems_list': 'Problèmes détectés',
