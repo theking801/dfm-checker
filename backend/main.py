@@ -23,14 +23,19 @@ import logging
 import os
 import time
 import tempfile
+import secrets
+import concurrent.futures
 from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request, Query
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request, Query, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 import trimesh
 
@@ -54,6 +59,24 @@ logging.basicConfig(
 logger = logging.getLogger("dfm-checker")
 
 # ──────────────────────────────────────────────
+# Authentication
+# ──────────────────────────────────────────────
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY")
+if not ADMIN_API_KEY:
+    ADMIN_API_KEY = secrets.token_urlsafe(32)
+    logger.warning("ADMIN_API_KEY not set in env, generated random key: %s", ADMIN_API_KEY)
+
+async def verify_admin_key(x_admin_key: str = Header(default="")):
+    """Verify admin API key for protected endpoints."""
+    if not secrets.compare_digest(x_admin_key, ADMIN_API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid or missing admin API key")
+
+async def verify_admin_key_query(admin_key: str = Query(default="")):
+    """Verify admin API key via query parameter (for browser access)."""
+    if not secrets.compare_digest(admin_key, ADMIN_API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid or missing admin API key")
+
+# ──────────────────────────────────────────────
 # App
 # ──────────────────────────────────────────────
 app = FastAPI(
@@ -63,6 +86,13 @@ app = FastAPI(
 )
 
 # ──────────────────────────────────────────────
+# Rate Limiting
+# ──────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ──────────────────────────────────────────────
 # CORS
 # ──────────────────────────────────────────────
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
@@ -70,8 +100,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in cors_origins],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Admin-Key"],
 )
 
 # ──────────────────────────────────────────────
@@ -127,7 +157,7 @@ SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 class FeedbackCreate(BaseModel):
     message: str
-    email: str = ""
+    email: EmailStr = ""
 
 class FeedbackStatusUpdate(BaseModel):
     status: str  # 'new', 'read', 'archived'
@@ -143,7 +173,7 @@ class SessionTimeUpdate(BaseModel):
 
 
 # ──────────────────────────────────────────────
-# Middleware : requête → log + timing
+# Middleware : requête → log + timing + security headers
 # ──────────────────────────────────────────────
 @app.middleware("http")
 async def log_requests_and_add_headers(request: Request, call_next):
@@ -157,19 +187,19 @@ async def log_requests_and_add_headers(request: Request, call_next):
         response.status_code,
         elapsed,
     )
-    # Add Security Headers
+    # Security Headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    # CSP adaptée au contexte API : autorise les connexions depuis le frontend
-    # Le frontend a besoin de charger fonts.googleapis.com et d'autres ressources
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # CSP without unsafe-inline
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "connect-src 'self' http://localhost:* https://*.vercel.app; "
+        "connect-src 'self' http://localhost:* https://*.vercel.app https://*.onrender.com; "
         "img-src 'self' data: blob:; "
         "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' https://fonts.googleapis.com; "
+        "script-src 'self'; "
         "frame-ancestors 'none'"
     )
     return response
@@ -218,7 +248,9 @@ async def get_materials():
 
 
 @app.post("/analyze")
+@limiter.limit("10/minute")
 async def analyze_stl(
+    request: Request,
     file: UploadFile = File(...),
     material: str = Form(default=DEFAULT_MATERIAL),
 ):
@@ -312,8 +344,19 @@ async def analyze_stl(
             tmp.write(content)
             tmp_path = tmp.name
 
-        # Chargement du mesh
-        loaded = trimesh.load(tmp_path)
+        # Chargement du mesh avec timeout (30s)
+        def _load_mesh(path: str):
+            return trimesh.load(path)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_load_mesh, tmp_path)
+            try:
+                loaded = future.result(timeout=30)
+            except concurrent.futures.TimeoutError:
+                raise HTTPException(
+                    status_code=408,
+                    detail="Chargement du fichier STL trop long (timeout 30s). Fichier trop complexe ou corrompu."
+                )
         mesh = None
 
         if isinstance(loaded, trimesh.Trimesh):
@@ -443,21 +486,24 @@ async def analyze_stl(
 
 
 # ──────────────────────────────────────────────
-# Admin Endpoints
+# Admin Endpoints (Protected + Rate Limited)
 # ──────────────────────────────────────────────
 
-@app.get("/admin/dashboard")
-async def admin_dashboard():
+@app.get("/admin/dashboard", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("30/minute")
+async def admin_dashboard(request: Request):
     """Retourne les statistiques pour le dashboard admin."""
     try:
         return db.get_dashboard_stats()
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur dashboard admin")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/admin/errors")
+@app.get("/admin/errors", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("30/minute")
 async def admin_errors(
+    request: Request,
     severity: Optional[str] = Query(None),
     resolved: Optional[bool] = Query(None),
     limit: int = Query(100),
@@ -466,97 +512,104 @@ async def admin_errors(
     """Retourne les erreurs avec filtres optionnels."""
     try:
         return db.get_errors(severity=severity, resolved=resolved, limit=limit, offset=offset)
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur récupération erreurs")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.patch("/admin/errors/{error_id}")
-async def admin_toggle_error(error_id: int):
+@app.patch("/admin/errors/{error_id}", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("30/minute")
+async def admin_toggle_error(request: Request, error_id: int):
     """Toggle le statut résolu d'une erreur."""
     try:
         db.toggle_error_resolved(error_id)
         return {"ok": True}
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur toggle erreur")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/admin/feedbacks")
-async def admin_feedbacks():
+@app.get("/admin/feedbacks", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("30/minute")
+async def admin_feedbacks(request: Request):
     """Retourne tous les feedbacks."""
     try:
         feedbacks = db.get_feedbacks()
         return {"feedbacks": feedbacks}
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur récupération feedbacks")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.post("/admin/feedbacks")
-async def admin_add_feedback(fb: FeedbackCreate):
+@app.post("/admin/feedbacks", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("10/minute")
+async def admin_add_feedback(request: Request, fb: FeedbackCreate):
     """Ajoute un nouveau feedback (depuis le frontend)."""
     if not fb.message.strip():
         raise HTTPException(status_code=400, detail="Message vide")
     try:
         fid = db.add_feedback(message=fb.message, email=fb.email)
         return {"id": fid, "ok": True}
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur ajout feedback")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.patch("/admin/feedbacks/{feedback_id}")
-async def admin_update_feedback_status(feedback_id: int, update: FeedbackStatusUpdate):
+@app.patch("/admin/feedbacks/{feedback_id}", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("30/minute")
+async def admin_update_feedback_status(request: Request, feedback_id: int, update: FeedbackStatusUpdate):
     """Met à jour le statut d'un feedback (new/read/archived)."""
     if update.status not in ("new", "read", "archived"):
         raise HTTPException(status_code=400, detail="Statut invalide")
     try:
         db.update_feedback_status(feedback_id, update.status)
         return {"ok": True}
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur update feedback")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ──────────────────────────────────────────────
-# Session Tracking Endpoints
+# Session Tracking Endpoints (Protected)
 # ──────────────────────────────────────────────
 
-@app.post("/session/update")
-async def session_update(update: SessionUpdate):
+@app.post("/session/update", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("60/minute")
+async def session_update(request: Request, update: SessionUpdate):
     """Met à jour l'état d'une session (upload, complétion)."""
     try:
         db.upsert_session(update.session_id, update.uploaded, update.completed)
         return {"ok": True}
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur session update")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.post("/session/time")
-async def session_time(update: SessionTimeUpdate):
+@app.post("/session/time", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("60/minute")
+async def session_time(request: Request, update: SessionTimeUpdate):
     """Enregistre le temps passé dans une session."""
     try:
         db.update_session_time(update.session_id, update.time_sec)
         return {"ok": True}
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur session time")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/admin/behavioral")
-async def admin_behavioral():
+@app.get("/admin/behavioral", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("30/minute")
+async def admin_behavioral(request: Request):
     """Retourne les stats comportementales pour le dashboard admin."""
     try:
         return db.get_behavioral_stats()
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur stats comportementales")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ──────────────────────────────────────────────
-# User Activity Logging
+# User Activity Logging (Protected)
 # ──────────────────────────────────────────────
 
 class ActivityLog(BaseModel):
@@ -568,8 +621,9 @@ class ActivityLog(BaseModel):
     metadata: str = "{}"
 
 
-@app.post("/activity/log")
-async def activity_log(activity: ActivityLog, request: Request):
+@app.post("/activity/log", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("120/minute")
+async def activity_log(request: Request, activity: ActivityLog):
     """Enregistre un événement d'activité utilisateur."""
     try:
         ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
@@ -577,24 +631,30 @@ async def activity_log(activity: ActivityLog, request: Request):
             ip = request.client.host if request.client else ""
         ua = request.headers.get("user-agent", "")
 
+        # Sanitize inputs to prevent log injection
+        def sanitize(s: str) -> str:
+            return "".join(c for c in s if c.isprintable() and c not in "\r\n")
+
         db.log_user_activity(
-            session_id=activity.session_id,
-            ip_address=ip,
-            user_agent=ua,
-            event_type=activity.event_type,
-            page=activity.page,
-            message=activity.message,
-            details=activity.details,
-            metadata=activity.metadata,
+            session_id=sanitize(activity.session_id),
+            ip_address=sanitize(ip),
+            user_agent=sanitize(ua[:500]),  # Limit UA length
+            event_type=sanitize(activity.event_type),
+            page=sanitize(activity.page),
+            message=sanitize(activity.message),
+            details=sanitize(activity.details),
+            metadata=sanitize(activity.metadata),
         )
         return {"ok": True}
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur log activité")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/admin/activities")
+@app.get("/admin/activities", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("60/minute")
 async def admin_activities(
+    request: Request,
     event_type: Optional[str] = Query(None),
     limit: int = Query(100),
     offset: int = Query(0),
@@ -602,16 +662,17 @@ async def admin_activities(
     """Retourne les activités utilisateur."""
     try:
         return db.get_user_activities(event_type=event_type, limit=limit, offset=offset)
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur récupération activités")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/admin/activity-stats")
-async def admin_activity_stats():
+@app.get("/admin/activity-stats", dependencies=[Depends(verify_admin_key)])
+@limiter.limit("60/minute")
+async def admin_activity_stats(request: Request):
     """Stats rapides des activités."""
     try:
         return db.get_activity_stats()
-    except Exception as e:
+    except Exception:
         logger.exception("Erreur stats activités")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

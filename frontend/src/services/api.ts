@@ -38,6 +38,18 @@ function getApiBaseUrl(): string {
   return (import.meta.env.VITE_API_URL || 'http://localhost:8000')
 }
 
+/** Récupère la clé API admin depuis les variables d'environnement */
+function getAdminApiKey(): string {
+  // @ts-expect-error - import.meta.env est défini par Vite
+  return import.meta.env.VITE_ADMIN_API_KEY || ''
+}
+
+/** Headers communs pour les appels admin vers le backend Python */
+function getAdminHeaders(): HeadersInit {
+  const key = getAdminApiKey()
+  return key ? { 'X-Admin-Key': key } : {}
+}
+
 /**
  * Vérifie la connexion avec le backend.
  * Utilisé par le composant pour afficher l'indicateur de statut.
@@ -155,7 +167,9 @@ export async function fetchAdminDashboard(): Promise<any> {
   }
   // Fallback: appel à l'API Python
   const baseUrl = getApiBaseUrl()
-  const response = await fetch(`${baseUrl}/admin/dashboard`)
+  const response = await fetch(`${baseUrl}/admin/dashboard`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) throw new Error('Erreur chargement dashboard')
   return response.json()
 }
@@ -176,7 +190,9 @@ export async function fetchAdminErrors(
   params.set('limit', String(limit))
   params.set('offset', String(offset))
 
-  const response = await fetch(`${baseUrl}/admin/errors?${params}`)
+  const response = await fetch(`${baseUrl}/admin/errors?${params}`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) throw new Error('Erreur chargement erreurs')
   return response.json()
 }
@@ -186,7 +202,10 @@ export async function toggleErrorResolved(errorId: number): Promise<void> {
     return supabaseToggleError(errorId)
   }
   const baseUrl = getApiBaseUrl()
-  const response = await fetch(`${baseUrl}/admin/errors/${errorId}`, { method: 'PATCH' })
+  const response = await fetch(`${baseUrl}/admin/errors/${errorId}`, { 
+    method: 'PATCH',
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) throw new Error('Erreur mise à jour')
 }
 
@@ -195,7 +214,9 @@ export async function fetchAdminFeedbacks(): Promise<any> {
     return supabaseFetchFeedbacks()
   }
   const baseUrl = getApiBaseUrl()
-  const response = await fetch(`${baseUrl}/admin/feedbacks`)
+  const response = await fetch(`${baseUrl}/admin/feedbacks`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) throw new Error('Erreur chargement feedbacks')
   return response.json()
 }
@@ -207,7 +228,7 @@ export async function submitFeedback(message: string, email: string = ''): Promi
   const baseUrl = getApiBaseUrl()
   const response = await fetch(`${baseUrl}/admin/feedbacks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
     body: JSON.stringify({ message, email }),
   })
   if (!response.ok) {
@@ -223,7 +244,7 @@ export async function updateFeedbackStatus(feedbackId: number, status: string): 
   const baseUrl = getApiBaseUrl()
   const response = await fetch(`${baseUrl}/admin/feedbacks/${feedbackId}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
     body: JSON.stringify({ status }),
   })
   if (!response.ok) throw new Error('Erreur mise à jour feedback')
@@ -294,7 +315,7 @@ export async function trackSessionEvent(event: {
       const baseUrl = getApiBaseUrl()
       await fetch(`${baseUrl}/session/update`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
         body: JSON.stringify({
           session_id: getSessionId(),
           ...event,
@@ -323,7 +344,7 @@ export async function trackSessionTime(timeSec: number): Promise<void> {
       const baseUrl = getApiBaseUrl()
       await fetch(`${baseUrl}/session/time`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
         body: JSON.stringify({
           session_id: getSessionId(),
           time_sec: timeSec,
@@ -355,7 +376,9 @@ export interface BehavioralStats {
 
 export async function fetchBehavioralStats(): Promise<BehavioralStats> {
   const baseUrl = getApiBaseUrl()
-  const response = await fetch(`${baseUrl}/admin/behavioral`)
+  const response = await fetch(`${baseUrl}/admin/behavioral`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) throw new Error('Erreur chargement stats comportementales')
   return response.json()
 }
@@ -391,7 +414,7 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
       const baseUrl = getApiBaseUrl()
       await fetch(`${baseUrl}/activity/log`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
         body: JSON.stringify({
           session_id: getSessionId(),
           ...event,
@@ -475,7 +498,9 @@ export async function fetchActivities(
   if (eventType && eventType !== 'all') params.set('event_type', eventType)
   params.set('limit', String(limit))
   params.set('offset', String(offset))
-  const response = await fetch(`${baseUrl}/admin/activities?${params}`)
+  const response = await fetch(`${baseUrl}/admin/activities?${params}`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) throw new Error('Erreur chargement activités')
   return response.json()
 }
@@ -532,7 +557,9 @@ export async function fetchActivityStats(): Promise<ActivityStats> {
   }
 
   const baseUrl = getApiBaseUrl()
-  const response = await fetch(`${baseUrl}/admin/activity-stats`)
+  const response = await fetch(`${baseUrl}/admin/activity-stats`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) throw new Error('Erreur chargement stats activités')
   return response.json()
 }

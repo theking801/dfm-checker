@@ -48,7 +48,7 @@ ALTER TABLE errors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
 
 -- Lecture : accessible à tous (via la clé anon)
--- Écriture : restreinte aux utilisateurs authentifiés
+-- Écriture : restreinte aux utilisateurs authentifiés (sauf feedbacks où anon peut insérer)
 CREATE POLICY "Allow anon read analytics" ON analytics FOR SELECT USING (true);
 CREATE POLICY "Allow auth insert analytics" ON analytics FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Allow anon read errors" ON errors FOR SELECT USING (true);
@@ -57,3 +57,5 @@ CREATE POLICY "Allow auth update errors" ON errors FOR UPDATE USING (auth.role()
 CREATE POLICY "Allow anon read feedbacks" ON feedbacks FOR SELECT USING (true);
 CREATE POLICY "Allow anon insert feedbacks" ON feedbacks FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow auth update feedbacks" ON feedbacks FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow all" ON sessions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON user_activity FOR ALL USING (true) WITH CHECK (true);
