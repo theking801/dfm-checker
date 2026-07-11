@@ -157,7 +157,7 @@ SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 class FeedbackCreate(BaseModel):
     message: str
-    email: EmailStr = ""
+    email: str = ""
 
 class FeedbackStatusUpdate(BaseModel):
     status: str  # 'new', 'read', 'archived'
