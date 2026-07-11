@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://dfm-checker-api.onrender.com/:path*"
+      "destination": "https://dfm-checker.onrender.com/:path*"
     },
     {
       "source": "/(.*)",
