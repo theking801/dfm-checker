@@ -49,27 +49,15 @@ function getAdminHeaders(): HeadersInit {
 
 /**
  * Vérifie la connexion avec le backend.
- * Timeout long pour supporter le cold start Render (~30s).
  */
 export async function checkBackendHealth(): Promise<boolean> {
   const baseUrl = getApiBaseUrl()
-  // Try up to 2 times with 35s timeout each (Render cold start)
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 35000)
-
-      const response = await fetch(`${baseUrl}/health`, {
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-      if (response.ok) return true
-    } catch {
-      // Continue to next attempt
-    }
+  try {
+    const response = await fetch(`${baseUrl}/health`)
+    return response.ok
+  } catch {
+    return false
   }
-  return false
 }
 
 /**
@@ -99,45 +87,26 @@ export async function analyzeStl(
 
   onProgress?.(10)
 
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 120_000)
+  const response = await fetch(`${baseUrl}/analyze`, {
+    method: 'POST',
+    body: formData,
+  })
 
-  try {
-    const response = await fetch(`${baseUrl}/analyze`, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal,
-    })
+  onProgress?.(50)
 
-    clearTimeout(timeoutId)
-    onProgress?.(50)
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null)
-      throw new Error(
-        errorData?.detail || `Erreur serveur : ${response.status} ${response.statusText}`
-      )
-    }
-
-    onProgress?.(70)
-
-    const result: AnalysisResult = await response.json()
-    onProgress?.(100)
-
-    return result
-  } catch (error) {
-    clearTimeout(timeoutId)
-
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error("L'analyse a pris trop de temps. Vérifie que le fichier n'est pas trop complexe.")
-    }
-
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Impossible de contacter le serveur. Vérifie que le backend est bien lancé.')
-    }
-
-    throw error
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+    throw new Error(
+      errorData?.detail || `Erreur serveur : ${response.status} ${response.statusText}`
+    )
   }
+
+  onProgress?.(70)
+
+  const result: AnalysisResult = await response.json()
+  onProgress?.(100)
+
+  return result
 }
 
 // ──────────────────────────────────────────────
