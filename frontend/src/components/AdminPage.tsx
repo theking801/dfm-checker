@@ -30,18 +30,6 @@ interface AdminPageProps {
 
 type Tab = 'dashboard' | 'errors' | 'feedbacks' | 'activity'
 
-/** Escape HTML to prevent XSS when rendering user-controlled content */
-function escapeHtml(text: string): string {
-  const map: Record<string, string> = {
-    '&': '&',
-    '<': '<',
-    '>': '>',
-    '"': '"',
-    "'": '&#039;',
-  }
-  return text.replace(/[&<>"']/g, (c) => map[c])
-}
-
 function StatCard({ label, value, icon, color, trend }: { label: string; value: string; icon: string; color: string; trend?: string }) {
   return (
     <div className="glass-panel p-5 flex items-start gap-4 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
@@ -672,7 +660,7 @@ CREATE POLICY "Allow all" ON user_activity FOR ALL USING (true) WITH CHECK (true
                     {dashboard.recent_errors.map((err: any) => (
                       <div key={err.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
                         <TypeBadge type={err.type} />
-                        <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{escapeHtml(err.message)}</span>
+                        <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{err.message}</span>
                         <SeverityBadge severity={err.severity} />
                         <span className={`text-[10px] font-mono ${err.resolved ? 'text-green-500' : 'text-red-400'}`}>
                           {err.resolved ? 'Résolu' : 'Ouvert'}
@@ -743,8 +731,8 @@ CREATE POLICY "Allow all" ON user_activity FOR ALL USING (true) WITH CHECK (true
                       <tr key={err.id} className="border-b border-gray-50 dark:border-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
                         <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono whitespace-nowrap">{err.timestamp}</td>
                         <td className="px-4 py-3"><TypeBadge type={err.type} /></td>
-                        <td className="px-4 py-3 text-sm text-gray-800 dark:text-gray-200 font-medium">{escapeHtml(err.message)}</td>
-                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">{escapeHtml(err.details)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-800 dark:text-gray-200 font-medium">{err.message}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">{err.details}</td>
                         <td className="px-4 py-3"><SeverityBadge severity={err.severity} /></td>
                         <td className="px-4 py-3">
                           <span className={`text-[11px] font-medium ${err.resolved ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
@@ -803,7 +791,7 @@ CREATE POLICY "Allow all" ON user_activity FOR ALL USING (true) WITH CHECK (true
                       )}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{escapeHtml(fb.message)}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{fb.message}</p>
                   {fb.email && (
                     <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -925,7 +913,7 @@ CREATE POLICY "Allow all" ON user_activity FOR ALL USING (true) WITH CHECK (true
                               </span>
                             </td>
                             <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300 font-medium">{act.page || '-'}</td>
-                            <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">{escapeHtml(act.message || '-')}</td>
+                            <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">{act.message || '-'}</td>
                             <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono">{act.ip_address || '-'}</td>
                             <td className="px-4 py-3 text-[10px] text-gray-400 dark:text-gray-500 font-mono max-w-[120px] truncate">{act.session_id || '-'}</td>
                           </tr>
