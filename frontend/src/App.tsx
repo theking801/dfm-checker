@@ -9,6 +9,7 @@ import AdminLogin from './components/AdminLogin'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { logActivity } from './services/api'
+import ErrorBoundary from './components/ErrorBoundary'
 import { supabase } from './lib/supabase'
 
 // Lazy load — ces composants ne sont pas nécessaires au premier chargement
@@ -115,16 +116,18 @@ function AppContent() {
             <div className="transition-opacity duration-400" style={{ opacity: fadeOut ? 0 : 1 }}>
               {screen === 'landing' && <LandingPage onStart={handleStart} />}
               {screen === 'analysis' && (
-                <Suspense fallback={
-                  <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-2 border-tech-300/50 border-t-tech-600 rounded-full animate-spin" />
-                      <span className="text-sm text-gray-500">Chargement…</span>
+                <ErrorBoundary>
+                  <Suspense fallback={
+                    <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-2 border-tech-300/50 border-t-tech-600 rounded-full animate-spin" />
+                        <span className="text-sm text-gray-500">Chargement…</span>
+                      </div>
                     </div>
-                  </div>
-                }>
-                  <AnalysisScreen onBack={handleBack} />
-                </Suspense>
+                  }>
+                    <AnalysisScreen onBack={handleBack} />
+                  </Suspense>
+                </ErrorBoundary>
               )}
               {screen === 'admin' && (
                 <Suspense fallback={
