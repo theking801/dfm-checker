@@ -241,9 +241,12 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('analysis.title')}</h1>
               <p className="text-gray-500 dark:text-gray-400">{t('analysis.subtitle')}</p>
               {backendStatus === 'offline' && (
-                <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm text-amber-600 dark:text-amber-300">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                  {t('analysis.backend_offline')}
+                <div className="inline-flex items-start gap-3 mt-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm text-amber-600 dark:text-amber-300 text-left max-w-md mx-auto">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse mt-1 shrink-0" />
+                  <div>
+                    <p className="font-medium mb-1">{t('analysis.backend_offline')}</p>
+                    <p className="text-xs opacity-80">{t('analysis.adblocker_hint')}</p>
+                  </div>
                 </div>
               )}
             </div>

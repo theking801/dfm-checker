@@ -50,6 +50,7 @@ const fr = {
   'analysis.title': 'Analyse ton fichier STL',
   'analysis.subtitle': "Importe ton fichier, choisis ton matériau, et lance l'analyse",
   'analysis.backend_offline': 'Backend en cours de démarrage... (~30s au premier chargement)',
+  'analysis.adblocker_hint': "Ça ne marche toujours pas ? Désactive ton ad blocker ou utilise le mode incognito (Ctrl+Shift+N).",
   'analysis.analyze': "Lancer l'analyse",
   'analysis.progress.prep': 'Préparation du fichier…',
   'analysis.progress.send': 'Envoi au serveur…',
