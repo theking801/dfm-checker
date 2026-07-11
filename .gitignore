@@ -35,3 +35,7 @@ Thumbs.db
 
 # Runtime data
 backend/data/*.db
+
+# Dev tools
+.mimocode/
+scripts/
