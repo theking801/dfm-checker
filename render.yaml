@@ -16,7 +16,7 @@ services:
       - key: MAX_FILE_SIZE_MB
         value: 50
       - key: CORS_ORIGINS
-        value: https://dfm-checker.vercel.app
+        value: https://dfm-checker-ten.vercel.app,https://dfm-checker.vercel.app
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
