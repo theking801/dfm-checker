@@ -157,21 +157,9 @@ async def log_requests_and_add_headers(request: Request, call_next):
         response.status_code,
         elapsed,
     )
-    # Add Security Headers
+    # Security Headers — no CSP on API (blocks cross-origin fetch)
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    # CSP adaptée au contexte API : autorise les connexions depuis le frontend
-    # Le frontend a besoin de charger fonts.googleapis.com et d'autres ressources
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "connect-src 'self' http://localhost:* https://*.vercel.app; "
-        "img-src 'self' data: blob:; "
-        "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "script-src 'self' 'unsafe-inline'; "
-        "frame-ancestors 'none'"
-    )
+    response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 
 
