@@ -32,7 +32,7 @@ function getApiBaseUrl(): string {
   if (import.meta.env.DEV) {
     return 'http://localhost:8000'
   }
-  return 'https://dfm-checker-api.onrender.com'
+  return 'https://dfm-checker.onrender.com'
 }
 
 /** Récupère la clé API admin depuis les variables d'environnement */
