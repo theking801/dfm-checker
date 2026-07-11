@@ -27,15 +27,15 @@ import {
 /**
  * Récupère l'URL de base de l'API.
  * En développement, utilise le proxy Vite (on envoie vers /api).
- * En production, utilise la variable d'environnement.
+ * En production, utilise le proxy Vercel (/api) qui forward vers Render.
  */
 function getApiBaseUrl(): string {
   // @ts-expect-error - import.meta.env est défini par Vite
   if (import.meta.env.DEV) {
     return '/api'
   }
-  // @ts-expect-error - import.meta.env est défini par Vite
-  return (import.meta.env.VITE_API_URL || 'http://localhost:8000')
+  // En production, utiliser le proxy Vercel configuré dans vercel.json
+  return '/api'
 }
 
 /** Récupère la clé API admin depuis les variables d'environnement */
