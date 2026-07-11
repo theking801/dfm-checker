@@ -37,7 +37,7 @@ export default function ReportPanel({ result }: ReportPanelProps) {
             <div>
               <h2 className="text-xl font-bold text-tech-900 dark:text-white">{t('report.title')}</h2>
               <p className="text-sm text-gray-500 mt-1">
-                {t('report.material')} : <span className="text-tech-600 font-medium">{material}</span>
+                {t('report.material')} : <span className="text-tech-600 font-medium">{t(`material.${material}`)}</span>
               </p>
             </div>
             <div className={`
@@ -64,7 +64,7 @@ export default function ReportPanel({ result }: ReportPanelProps) {
                 <div key={sev} className="flex items-center gap-2 text-sm">
                   <span className={`w-2 h-2 rounded-full ${config.color.replace('text-', 'bg-')}`} />
                   <span className="text-gray-500 dark:text-gray-400">
-                    {count} {config.label.toLowerCase()}
+                    {count} {t(`severity.${sev}`).toLowerCase()}
                   </span>
                 </div>
               )

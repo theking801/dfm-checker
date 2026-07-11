@@ -37,7 +37,7 @@ export default function MaterialSelector({
         >
           {(Object.keys(MATERIAL_NAMES) as Material[]).map((mat) => (
             <option key={mat} value={mat}>
-              {MATERIAL_NAMES[mat]}
+              {t(`material.${mat}`)}
             </option>
           ))}
         </select>

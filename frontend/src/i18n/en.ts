@@ -110,6 +110,22 @@ const en = {
   'report.suggestion': 'Suggestion',
   'report.export': 'Export report as PDF',
 
+  // Problem labels
+  'problem.thin_wall': 'Thin wall',
+  'problem.overhang': 'Unsupported overhang',
+  'problem.aspect_ratio': 'Slender ratio',
+  'problem.sharp_corner': 'Sharp corner / Stress concentration',
+
+  // Severity labels
+  'severity.high': 'Critical',
+  'severity.medium': 'Moderate',
+  'severity.low': 'Info',
+
+  // Material names
+  'material.PLA': 'PLA (Polylactic acid)',
+  'material.ABS': 'ABS (Acrylonitrile butadiene styrene)',
+  'material.PETG': 'PETG (Polyethylene terephthalate glycol)',
+
   // Feedback
   'feedback.button': 'Feedback',
   'feedback.title': 'Share your feedback',

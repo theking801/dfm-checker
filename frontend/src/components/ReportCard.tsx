@@ -14,7 +14,9 @@ interface ReportCardProps {
 export default function ReportCard({ problem, index }: ReportCardProps) {
   const { t } = useTranslation()
   const severityConfig = SEVERITY_CONFIG[problem.severity]
-  const problemLabel = PROBLEM_LABELS[problem.type]
+  const severityLabel = t(`severity.${problem.severity}`)
+  const problemTitle = t(`problem.${problem.type}`)
+  const problemIcon = PROBLEM_LABELS[problem.type].icon
 
   return (
     <div
@@ -30,11 +32,11 @@ export default function ReportCard({ problem, index }: ReportCardProps) {
       {/* En-tête */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">{problemLabel.icon}</span>
+          <span className="text-2xl">{problemIcon}</span>
           <div>
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{problemLabel.title}</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{problemTitle}</h3>
             <span className={`text-xs font-medium ${severityConfig.color}`}>
-              {severityConfig.label}
+              {severityLabel}
             </span>
           </div>
         </div>

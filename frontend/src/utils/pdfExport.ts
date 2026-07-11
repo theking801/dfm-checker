@@ -206,15 +206,16 @@ export function exportToPdf(result: AnalysisResult, lang: 'fr' | 'en' = 'fr'): v
         y = margin
       }
 
-      const problemLabel = PROBLEM_LABELS[problem.type]
+      const problemIcon = PROBLEM_LABELS[problem.type].icon
+      const problemTitle = t(`problem.${problem.type}`)
       const sevConfig = SEVERITY_CONFIG[problem.severity]
 
       // Numéro + titre du problème
-      addText(`${index + 1}. ${problemLabel.icon} ${problemLabel.title}`, 12, true, [30, 30, 30])
+      addText(`${index + 1}. ${problemIcon} ${problemTitle}`, 12, true, [30, 30, 30])
       addSpacing(2)
 
       // Sévérité
-      const sevLabel = problem.severity === 'high' ? t('critical') : problem.severity === 'medium' ? t('moderate') : t('low')
+      const sevLabel = t(`severity.${problem.severity}`)
       pdf.setFontSize(9)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(120, 120, 120)
