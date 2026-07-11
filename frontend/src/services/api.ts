@@ -26,16 +26,13 @@ import {
 
 /**
  * Récupère l'URL de base de l'API.
- * En développement, utilise le proxy Vite (on envoie vers /api).
- * En production, essaie le proxy Vercel (/api), fallback sur Render direct.
  */
 function getApiBaseUrl(): string {
   // @ts-expect-error - import.meta.env est défini par Vite
   if (import.meta.env.DEV) {
-    return '/api'
+    return 'http://localhost:8000'
   }
-  // @ts-expect-error - import.meta.env est défini par Vite
-  return import.meta.env.VITE_API_URL || '/api'
+  return 'https://dfm-checker-api.onrender.com'
 }
 
 /** Récupère la clé API admin depuis les variables d'environnement */
@@ -50,11 +47,8 @@ function getAdminHeaders(): HeadersInit {
   return key ? { 'X-Admin-Key': key } : {}
 }
 
-const RENDER_URL = 'https://dfm-checker-api.onrender.com'
-
 /**
  * Vérifie la connexion avec le backend.
- * Essaie d'abord /api (proxy Vercel), puis fallback direct sur Render.
  */
 export async function checkBackendHealth(): Promise<boolean> {
   const baseUrl = getApiBaseUrl()
@@ -67,19 +61,6 @@ export async function checkBackendHealth(): Promise<boolean> {
     })
 
     clearTimeout(timeoutId)
-    if (response.ok) return true
-  } catch {
-    // Proxy failed, try direct Render URL
-  }
-
-  // Fallback: try Render directly
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
-    const response = await fetch(`${RENDER_URL}/health`, {
-      signal: controller.signal,
-    })
-    clearTimeout(timeoutId)
     return response.ok
   } catch {
     return false
@@ -90,77 +71,68 @@ export async function checkBackendHealth(): Promise<boolean> {
  * Récupère la liste des matériaux supportés depuis le backend.
  */
 export async function fetchMaterials() {
-  for (const baseUrl of [getApiBaseUrl(), RENDER_URL]) {
-    try {
-      const response = await fetch(`${baseUrl}/materials`)
-      if (response.ok) return response.json()
-    } catch {}
+  const baseUrl = getApiBaseUrl()
+  const response = await fetch(`${baseUrl}/materials`)
+  if (!response.ok) {
+    throw new Error('Impossible de récupérer les matériaux')
   }
-  throw new Error('Impossible de récupérer les matériaux')
+  return response.json()
 }
 
 /**
  * Upload un fichier STL et lance l'analyse de fabricabilité.
- * Essaie /api (proxy), fallback direct sur Render.
  */
 export async function analyzeStl(
   file: File,
   material: Material,
   onProgress?: (progress: number) => void
 ): Promise<AnalysisResult> {
+  const baseUrl = getApiBaseUrl()
   const formData = new FormData()
   formData.append('file', file)
   formData.append('material', material)
 
   onProgress?.(10)
 
-  // Try proxy first, then direct Render
-  const urls = [getApiBaseUrl(), RENDER_URL]
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 120_000)
 
-  for (const baseUrl of urls) {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 120_000)
+  try {
+    const response = await fetch(`${baseUrl}/analyze`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    })
 
-    try {
-      const response = await fetch(`${baseUrl}/analyze`, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-      })
+    clearTimeout(timeoutId)
+    onProgress?.(50)
 
-      clearTimeout(timeoutId)
-      onProgress?.(50)
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null)
-        throw new Error(
-          errorData?.detail || `Erreur serveur : ${response.status} ${response.statusText}`
-        )
-      }
-
-      onProgress?.(70)
-
-      const result: AnalysisResult = await response.json()
-      onProgress?.(100)
-
-      return result
-    } catch (error) {
-      clearTimeout(timeoutId)
-      // If this was the last URL, throw the error
-      if (baseUrl === RENDER_URL) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          throw new Error("L'analyse a pris trop de temps. Vérifie que le fichier n'est pas trop complexe.")
-        }
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-          throw new Error('Impossible de contacter le serveur. Le backend Render est peut-être en veille.')
-        }
-        throw error
-      }
-      // Otherwise continue to next URL (fallback)
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null)
+      throw new Error(
+        errorData?.detail || `Erreur serveur : ${response.status} ${response.statusText}`
+      )
     }
-  }
 
-  throw new Error('Impossible de contacter le serveur. Le backend est peut-être en veille.')
+    onProgress?.(70)
+
+    const result: AnalysisResult = await response.json()
+    onProgress?.(100)
+
+    return result
+  } catch (error) {
+    clearTimeout(timeoutId)
+
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error("L'analyse a pris trop de temps. Vérifie que le fichier n'est pas trop complexe.")
+    }
+
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Impossible de contacter le serveur. Vérifie que le backend est bien lancé.')
+    }
+
+    throw error
+  }
 }
 
 // ──────────────────────────────────────────────
