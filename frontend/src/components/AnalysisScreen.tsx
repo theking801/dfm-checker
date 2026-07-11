@@ -241,8 +241,8 @@ export default function AnalysisScreen({ onBack }: { onBack: () => void }) {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('analysis.title')}</h1>
               <p className="text-gray-500 dark:text-gray-400">{t('analysis.subtitle')}</p>
               {backendStatus === 'offline' && (
-                <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400 dark:text-red-300">
-                  <span className="w-2 h-2 rounded-full bg-red-400" />
+                <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm text-amber-600 dark:text-amber-300">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   {t('analysis.backend_offline')}
                 </div>
               )}

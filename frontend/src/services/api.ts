@@ -49,22 +49,27 @@ function getAdminHeaders(): HeadersInit {
 
 /**
  * Vérifie la connexion avec le backend.
+ * Timeout long pour supporter le cold start Render (~30s).
  */
 export async function checkBackendHealth(): Promise<boolean> {
   const baseUrl = getApiBaseUrl()
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
+  // Try up to 2 times with 35s timeout each (Render cold start)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 35000)
 
-    const response = await fetch(`${baseUrl}/health`, {
-      signal: controller.signal,
-    })
+      const response = await fetch(`${baseUrl}/health`, {
+        signal: controller.signal,
+      })
 
-    clearTimeout(timeoutId)
-    return response.ok
-  } catch {
-    return false
+      clearTimeout(timeoutId)
+      if (response.ok) return true
+    } catch {
+      // Continue to next attempt
+    }
   }
+  return false
 }
 
 /**

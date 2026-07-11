@@ -49,7 +49,7 @@ const en = {
   // Analysis Screen
   'analysis.title': 'Analyze your STL file',
   'analysis.subtitle': "Upload your file, choose your material, and start the analysis",
-  'analysis.backend_offline': 'Backend server unreachable — make sure it is running',
+  'analysis.backend_offline': 'Backend waking up... (~30s on first load)',
   'analysis.analyze': "Start analysis",
   'analysis.progress.prep': 'Preparing file…',
   'analysis.progress.send': 'Sending to server…',
