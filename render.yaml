@@ -15,4 +15,6 @@ services:
       - key: MAX_FILE_SIZE_MB
         value: 50
       - key: CORS_ORIGINS
-        value: "*"
+        value: "https://dfm-checker.vercel.app,http://localhost:5173"
+      - key: ADMIN_API_KEY
+        sync: false
