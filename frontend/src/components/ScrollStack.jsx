@@ -93,14 +93,16 @@ const ScrollStack = ({
     }, 100);
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", () => {
+
+    const handleResize = () => {
       updateSpacerHeight();
       updateTops();
-    });
+    };
+    window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", updateSpacerHeight);
+      window.removeEventListener("resize", handleResize);
     };
   }, [count, topStart, topGap]);
 

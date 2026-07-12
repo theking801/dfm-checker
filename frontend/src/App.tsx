@@ -21,11 +21,15 @@ function AppContent() {
   const [showLogin, setShowLogin] = useState(false)
   const [fadeOut, setFadeOut] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [hasValidSession, setHasValidSession] = useState(false)
 
-  // ── Auto-login: just check session exists, don't redirect ──
+  // ── Auto-login: check session exists and store result ──
   useEffect(() => {
     if (!supabase) { setCheckingAuth(false); return }
     supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setHasValidSession(!!session)
+      })
       .catch(() => {})
       .finally(() => setCheckingAuth(false))
   }, [])
@@ -83,6 +87,7 @@ function AppContent() {
 
   const handleLoginSuccess = useCallback(() => {
     setShowLogin(false)
+    setHasValidSession(true)
     setFadeOut(true)
     setTimeout(() => { setScreen('admin'); setFadeOut(false) }, 400)
   }, [])
@@ -129,7 +134,7 @@ function AppContent() {
                   </Suspense>
                 </ErrorBoundary>
               )}
-              {screen === 'admin' && (
+              {screen === 'admin' && hasValidSession && (
                 <Suspense fallback={
                   <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3">

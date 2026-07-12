@@ -29,6 +29,8 @@ Algorithme :
 5. Regrouper les arêtes connexes en "zones de concentration"
 """
 
+from constants import SEVERITY_ORDER
+
 import numpy as np
 import trimesh
 from collections import defaultdict, deque
@@ -260,7 +262,6 @@ def detect_sharp_corners(
         })
 
     # Tri final : problèmes les plus sévères en premier
-    severity_order = {"high": 0, "medium": 1, "low": 2}
-    problems.sort(key=lambda p: severity_order.get(p["severity"], 3))
+    problems.sort(key=lambda p: SEVERITY_ORDER.get(p["severity"], 3))
 
     return problems

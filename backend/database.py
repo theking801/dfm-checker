@@ -33,6 +33,7 @@ def get_connection() -> sqlite3.Connection:
         _local.conn.row_factory = sqlite3.Row
         _local.conn.execute("PRAGMA journal_mode=WAL")
         _local.conn.execute("PRAGMA foreign_keys=ON")
+        _local.conn.execute("PRAGMA busy_timeout=5000")
     return _local.conn
 
 
@@ -102,6 +103,9 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_errors_timestamp ON errors(timestamp);
         CREATE INDEX IF NOT EXISTS idx_feedbacks_status ON feedbacks(status);
         CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id);
+        CREATE INDEX IF NOT EXISTS idx_activity_event ON user_activity(event_type);
+        CREATE INDEX IF NOT EXISTS idx_activity_session ON user_activity(session_id);
+        CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON user_activity(timestamp);
     """)
     conn.commit()
 

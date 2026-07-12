@@ -8,19 +8,10 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// @ts-expect-error - import.meta.env est défini par Vite
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-// @ts-expect-error - import.meta.env est défini par Vite
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const isConfigured = !!(supabaseUrl && supabaseAnonKey)
-
-if (!isConfigured) {
-  console.warn(
-    '[Supabase] Variables VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY manquantes. ' +
-    'Les fonctionnalités admin utiliseront le backend Python SQLite en fallback.'
-  )
-}
 
 export const supabase = isConfigured ? createClient(supabaseUrl!, supabaseAnonKey!) : null
 

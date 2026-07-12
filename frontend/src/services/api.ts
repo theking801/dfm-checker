@@ -10,8 +10,8 @@ import type { DashboardData, DbError, DbFeedback } from '../lib/supabase'
 export type AdminDashboard = DashboardData
 export type AdminError = DbError
 export type AdminFeedback = DbFeedback
-export interface ErrorListResponse { errors: any[]; total: number }
-export interface FeedbackListResponse { feedbacks: any[] }
+export interface ErrorListResponse { errors: DbError[]; total: number }
+export interface FeedbackListResponse { feedbacks: DbFeedback[] }
 
 import {
   fetchDashboard as supabaseFetchDashboard,
@@ -21,14 +21,12 @@ import {
   addFeedback as supabaseAddFeedback,
   updateFeedbackStatus as supabaseUpdateFeedback,
   signInAdmin,
-  fetchBehavioralStats as supabaseFetchBehavioral,
 } from '../lib/supabase'
 
 /**
  * Récupère l'URL de base de l'API.
  */
 function getApiBaseUrl(): string {
-  // @ts-expect-error - import.meta.env est défini par Vite
   if (import.meta.env.DEV) {
     return 'http://localhost:8000'
   }
@@ -37,7 +35,6 @@ function getApiBaseUrl(): string {
 
 /** Récupère la clé API admin depuis les variables d'environnement */
 function getAdminApiKey(): string {
-  // @ts-expect-error - import.meta.env est défini par Vite
   return import.meta.env.VITE_ADMIN_API_KEY || ''
 }
 
@@ -58,18 +55,6 @@ export async function checkBackendHealth(): Promise<boolean> {
   } catch {
     return false
   }
-}
-
-/**
- * Récupère la liste des matériaux supportés depuis le backend.
- */
-export async function fetchMaterials() {
-  const baseUrl = getApiBaseUrl()
-  const response = await fetch(`${baseUrl}/materials`)
-  if (!response.ok) {
-    throw new Error('Impossible de récupérer les matériaux')
-  }
-  return response.json()
 }
 
 /**
@@ -115,11 +100,10 @@ export async function analyzeStl(
 
 /** Vérifie si Supabase est configuré */
 function hasSupabase(): boolean {
-  // @ts-expect-error - import.meta.env est défini par Vite
   return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 }
 
-export async function fetchAdminDashboard(): Promise<any> {
+export async function fetchAdminDashboard(): Promise<DashboardData> {
   if (hasSupabase()) {
     return supabaseFetchDashboard()
   }
@@ -137,7 +121,7 @@ export async function fetchAdminErrors(
   resolved?: boolean,
   limit = 100,
   offset = 0
-): Promise<any> {
+): Promise<ErrorListResponse> {
   if (hasSupabase()) {
     return supabaseFetchErrors({ severity, resolved, limit, offset })
   }
@@ -167,7 +151,7 @@ export async function toggleErrorResolved(errorId: number): Promise<void> {
   if (!response.ok) throw new Error('Erreur mise à jour')
 }
 
-export async function fetchAdminFeedbacks(): Promise<any> {
+export async function fetchAdminFeedbacks(): Promise<FeedbackListResponse> {
   if (hasSupabase()) {
     return supabaseFetchFeedbacks()
   }
@@ -215,10 +199,10 @@ export { signInAdmin } from '../lib/supabase'
 // ──────────────────────────────────────────────
 
 /**
- * Génère un ID de session unique basé sur le timestamp + random.
+ * Génère un ID de session unique basé sur crypto.randomUUID().
  */
 function generateSessionId(): string {
-  return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+  return `sess_${crypto.randomUUID()}`
 }
 
 let _sessionId: string | null = null

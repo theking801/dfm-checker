@@ -22,7 +22,6 @@ export default function AdminLogin({ onSuccess, onCancel }: AdminLoginProps) {
 
   const emailRef = useRef<HTMLInputElement>(null)
 
-  // @ts-expect-error - import.meta.env est défini par Vite
   const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 
   // Focus automatique + fermeture Escape
